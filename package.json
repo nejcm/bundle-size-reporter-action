@@ -1,5 +1,5 @@
 {
-  "name": "bundle-size-github-action",
+  "name": "bundle-size-reporter-action",
   "version": "1.2.0",
   "description": "Bundle size reporter",
   "main": "dist/index.js",
@@ -14,12 +14,12 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/nejcm/bundle-size-reporter-action.git"
+    "url": "git+https://github.com/bundle-size-reporter-action.git"
   },
   "bugs": {
-    "url": "https://github.com/nejcm/bundle-size-reporter-action/issues"
+    "url": "https://github.com/bundle-size-reporter-action/issues"
   },
-  "homepage": "https://github.com/nejcm/bundle-size-reporter-action#readme",
+  "homepage": "https://github.com/bundle-size-reporter-action#readme",
   "scripts": {
     "lint": "eslint src/**/*.{js,jsx,ts,tsx}",
     "test": "jest",
