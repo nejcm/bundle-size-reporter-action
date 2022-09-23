@@ -1,4 +1,4 @@
-import { getInput, info, setFailed, setOutput } from '@actions/core';
+import * as core from '@actions/core';
 import fs from 'fs/promises';
 import glob from 'glob';
 import { isEqual } from 'lodash/fp';
@@ -103,7 +103,7 @@ export const getBundleSizeDiff = async (
 ): Promise<Response> => {
   const splited = paths.trim().split(',');
   const fileMap = getFilesMap(splited, options);
-  info(`Files: ${JSON.stringify(fileMap)}`);
+  core.info(`Files: ${JSON.stringify(fileMap)}`);
 
   // TODO: run in paralel
   const result = await Object.keys(fileMap).reduce<Promise<Response>>(
@@ -133,17 +133,17 @@ export const getBundleSizeDiff = async (
 };
 
 export const run = async (): Promise<void> => {
-  info(`Starting bundle size diff action.`);
-  const paths = getInput('paths');
-  const onlyDiff = toBoolean(getInput('onlyDiff') || 'false');
+  core.info(`Starting bundle size diff action.`);
+  const paths = core.getInput('paths');
+  const onlyDiff = toBoolean(core.getInput('onlyDiff') || 'false');
   try {
     if (!paths || paths.length === 0) throw new Error('Missing paths input!');
     const { reports, summary = '' } = await getBundleSizeDiff(paths, onlyDiff);
-    setOutput('reports', reports);
-    setOutput('summary', summary);
-    info(`Bundle size action completed.`);
+    core.setOutput('reports', reports);
+    core.setOutput('summary', summary);
+    core.info(`Bundle size action completed.`);
   } catch (error: any) {
-    setFailed(error.message);
-    setOutput('summary', '');
+    core.setFailed(error.message);
+    core.setOutput('summary', '');
   }
 };
