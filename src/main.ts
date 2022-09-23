@@ -1,4 +1,4 @@
-import { info, setFailed, setOutput } from '@actions/core';
+import { getInput, info, setFailed, setOutput } from '@actions/core';
 import fs from 'fs/promises';
 import glob from 'glob';
 import { isEqual } from 'lodash/fp';
@@ -91,7 +91,7 @@ export const getFilesMap = (
     const oldFiles = glob.sync(branchPath, opts);
     const map = array2Map([
       ...newFiles.map((val) => trimPath(val, basePaths.main)),
-      ...oldFiles.map((val) => trimPath(val, basePaths.main)),
+      ...oldFiles.map((val) => trimPath(val, basePaths.branch)),
     ]);
     return { ...acc, ...map };
   }, {});
@@ -135,8 +135,8 @@ export const getBundleSizeDiff = async (
 export const run = async (): Promise<void> => {
   info(`Starting bundle size diff action.`);
   try {
-    const paths = process.env.PATHS || '/';
-    const onlyDiff = toBoolean(process.env.ONLY_DIFF);
+    const paths = getInput('paths') || '/';
+    const onlyDiff = toBoolean(getInput('onlyDiff'));
     const { reports, summary = '' } = await getBundleSizeDiff(paths, onlyDiff);
     setOutput('reports', reports);
     setOutput('summary', summary);
