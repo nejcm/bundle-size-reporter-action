@@ -101,6 +101,29 @@ exports.array2Map = array2Map;
 
 "use strict";
 
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || function (mod) {
+    if (mod && mod.__esModule) return mod;
+    var result = {};
+    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
+    __setModuleDefault(result, mod);
+    return result;
+};
 var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
     function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
     return new (P || (P = Promise))(function (resolve, reject) {
@@ -115,7 +138,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.run = exports.getBundleSizeDiff = exports.getFilesMap = exports.bundleSizeJson = exports.bundleSizeFolder = exports.buildReport = exports.trimPath = void 0;
-const core_1 = __nccwpck_require__(2186);
+const core = __importStar(__nccwpck_require__(2186));
 const promises_1 = __importDefault(__nccwpck_require__(3292));
 const glob_1 = __importDefault(__nccwpck_require__(1957));
 const fp_1 = __nccwpck_require__(4542);
@@ -183,7 +206,7 @@ const getFilesMap = (paths, options) => paths.reduce((acc, path) => {
     const oldFiles = glob_1.default.sync(branchPath, opts);
     const map = (0, helpers_1.array2Map)([
         ...newFiles.map((val) => (0, exports.trimPath)(val, basePaths.main)),
-        ...oldFiles.map((val) => (0, exports.trimPath)(val, basePaths.main)),
+        ...oldFiles.map((val) => (0, exports.trimPath)(val, basePaths.branch)),
     ]);
     return Object.assign(Object.assign({}, acc), map);
 }, {});
@@ -191,7 +214,7 @@ exports.getFilesMap = getFilesMap;
 const getBundleSizeDiff = (paths, onlyDiff = false, options = {}) => __awaiter(void 0, void 0, void 0, function* () {
     const splited = paths.trim().split(',');
     const fileMap = (0, exports.getFilesMap)(splited, options);
-    (0, core_1.info)(`Files: ${JSON.stringify(fileMap)}`);
+    core.info(`Files: ${JSON.stringify(fileMap)}`);
     // TODO: run in paralel
     const result = yield Object.keys(fileMap).reduce((acc, path) => __awaiter(void 0, void 0, void 0, function* () {
         const fullPath = path_1.default.join(basePaths.main, path);
@@ -216,18 +239,20 @@ const getBundleSizeDiff = (paths, onlyDiff = false, options = {}) => __awaiter(v
 });
 exports.getBundleSizeDiff = getBundleSizeDiff;
 const run = () => __awaiter(void 0, void 0, void 0, function* () {
-    (0, core_1.info)(`Starting bundle size diff action.`);
+    core.info(`Starting bundle size diff action.`);
+    const paths = core.getInput('paths');
+    const onlyDiff = (0, helpers_1.toBoolean)(core.getInput('onlyDiff') || 'false');
     try {
-        const paths = process.env.PATHS || '/';
-        const onlyDiff = (0, helpers_1.toBoolean)(process.env.ONLY_DIFF);
+        if (!paths || paths.length === 0)
+            throw new Error('Missing paths input!');
         const { reports, summary = '' } = yield (0, exports.getBundleSizeDiff)(paths, onlyDiff);
-        (0, core_1.setOutput)('reports', reports);
-        (0, core_1.setOutput)('summary', summary);
-        (0, core_1.info)(`Bundle size action completed.`);
+        core.setOutput('reports', reports);
+        core.setOutput('summary', summary);
+        core.info(`Bundle size action completed.`);
     }
     catch (error) {
-        (0, core_1.setFailed)(error.message);
-        (0, core_1.setOutput)('summary', '');
+        core.setFailed(error.message);
+        core.setOutput('summary', '');
     }
 });
 exports.run = run;
