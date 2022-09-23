@@ -91,7 +91,7 @@ export const getFilesMap = (
     const oldFiles = glob.sync(branchPath, opts);
     const map = array2Map([
       ...newFiles.map((val) => trimPath(val, basePaths.main)),
-      ...oldFiles.map((val) => trimPath(val, basePaths.main)),
+      ...oldFiles.map((val) => trimPath(val, basePaths.branch)),
     ]);
     return { ...acc, ...map };
   }, {});
