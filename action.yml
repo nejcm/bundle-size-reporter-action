@@ -4,7 +4,6 @@ inputs:
   paths:
     description: 'Paths to json file bundle size report or folder containing bundles'
     required: true
-    default: '/'
   onlyDiff:
     description: 'Report only different sizes'
     required: false

@@ -5,7 +5,6 @@ Action for reporting bundle size difference
 ## Inputs
 
 `paths` - [**Required**] Paths to bundle size json files. Comma separated list.
-Default: `"/"`.
 
 `onlyDiff` - Report only differences. Default `"true"`.
 
@@ -25,14 +24,15 @@ Default: `"/"`.
       path: br-base # required
       token: ${{ secrets.GITHUB_TOKEN }}
 
-  - name: 📄 Bundle size report
-    uses: nejcm/bundle-size-diff-github-action@v1.0.0
+  - name: Bundle size report
+    id: bundleSize
+    uses: nejcm/bundle-size-diff-github-action@v1.0.1
     with:
-      paths: 'packages/*/.size-snapshot.json' # paths to reports
-      onlyDiff: 'true' # report only differences
+      paths: 'reports/**/*.json'
+      onlyDiff: 'true'
 ```
 
-### Post a comment and summary
+### Post a comment and action summary
 
 ```
   # post action summary
