@@ -183,7 +183,7 @@ const getFilesMap = (paths, options) => paths.reduce((acc, path) => {
     const oldFiles = glob_1.default.sync(branchPath, opts);
     const map = (0, helpers_1.array2Map)([
         ...newFiles.map((val) => (0, exports.trimPath)(val, basePaths.main)),
-        ...oldFiles.map((val) => (0, exports.trimPath)(val, basePaths.main)),
+        ...oldFiles.map((val) => (0, exports.trimPath)(val, basePaths.branch)),
     ]);
     return Object.assign(Object.assign({}, acc), map);
 }, {});
@@ -217,9 +217,11 @@ const getBundleSizeDiff = (paths, onlyDiff = false, options = {}) => __awaiter(v
 exports.getBundleSizeDiff = getBundleSizeDiff;
 const run = () => __awaiter(void 0, void 0, void 0, function* () {
     (0, core_1.info)(`Starting bundle size diff action.`);
+    const paths = (0, core_1.getInput)('paths');
+    const onlyDiff = (0, helpers_1.toBoolean)((0, core_1.getInput)('onlyDiff') || 'false');
     try {
-        const paths = process.env.PATHS || '/';
-        const onlyDiff = (0, helpers_1.toBoolean)(process.env.ONLY_DIFF);
+        if (!paths || paths.length === 0)
+            throw new Error('Missing paths input!');
         const { reports, summary = '' } = yield (0, exports.getBundleSizeDiff)(paths, onlyDiff);
         (0, core_1.setOutput)('reports', reports);
         (0, core_1.setOutput)('summary', summary);
