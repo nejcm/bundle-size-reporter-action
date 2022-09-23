@@ -1,0 +1,10 @@
+node_modules/
+coverage/
+dist/
+build/
+package-lock.json
+package.json
+yarn.lock
+*.yml
+
+CHANGELOG.md

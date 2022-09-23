@@ -1,0 +1,60 @@
+name: ci
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: Running ci
+    if: 'github.event.pull_request.draft != true'
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node: [16]
+    env:
+      CI: true
+
+    steps:
+      - name: 🛒 Checkout code
+        uses: actions/checkout@v3
+
+      - name: 💿 Setup Nodejs
+        uses: actions/setup-node@v3
+        with:
+          node-version: ${{ matrix.node-version }}
+
+      - name: 💾 Get yarn cache directory path
+        id: yarn-cache-dir-path
+        run: echo "::set-output name=dir::$(yarn cache dir)"
+      - name: 💾 Cache
+        uses: actions/cache@v2
+        id: yarn-cache
+        with:
+          path: |
+            node_modules
+            ${{ steps.yarn-cache-dir-path.outputs.dir }}
+          key: ${{ runner.os }}-yarn-${{ hashFiles('yarn.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-yarn
+
+      - name: 🧩 Install dependencies
+        if: steps.yarn-cache.outputs.cache-hit != 'true'
+        run: yarn install --prefer-offline --frozen-lockfile
+
+      - name: 🧪 Test
+        run: yarn test
+
+      - name: 🔨 Build
+        run: yarn ncc
+
+      - name: 📄 Bundle size
+        uses: ./
+        with:
+          branch: 'test'
+          paths: 'reports/**/*.json'
+          onlyDiff: 'false'
+          ghToken: ${{ secrets.GITHUB_TOKEN }}
