@@ -1,4 +1,4 @@
-name: 'Bundle size reporter'
+name: 'Bundle size diff reporter'
 description: 'Post bundle size difference compared to another branch'
 inputs:
   paths:
