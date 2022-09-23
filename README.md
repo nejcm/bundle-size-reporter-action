@@ -35,4 +35,5 @@ Github token.
 
 ## Outputs
 
-The action will post a comment with differences and an action summary.
+The action will post an action summary and a comment with bundle size
+differences.
