@@ -1,12 +1,12 @@
 {
   "a.cjs.js": {
-    "bundled": 1231,
-    "minified": 1001,
-    "gzipped": 694
+    "bundled": 1341,
+    "minified": 1211,
+    "gzipped": 798
   },
   "a2.cjs.js": {
-    "bundled": 8240,
-    "minified": 6486,
-    "gzipped": 4889
+    "bundled": 7842,
+    "minified": 7431,
+    "gzipped": 6009
   }
 }
