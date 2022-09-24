@@ -22,6 +22,7 @@
   "homepage": "https://github.com/nejcm/bundle-size-reporter-action#readme",
   "scripts": {
     "lint": "eslint src/**/*.{js,jsx,ts,tsx}",
+    "lint:ts": "tsc --noEmit",
     "test": "jest",
     "format": "prettier --write ./src",
     "format:check": "prettier --check ./src",

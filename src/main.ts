@@ -1,17 +1,16 @@
-import { getInput, info, setFailed, setOutput } from '@actions/core';
 import fs from 'fs/promises';
 import glob from 'glob';
-import { isEqual } from 'lodash/fp';
 import Path from 'path';
 import {
   array2Map,
   isJsonFile,
   parseJSON,
+  percentageDiff,
   readFile,
-  toBoolean,
+  trimPath,
 } from './helpers';
 import { diffTable } from './markdown';
-import { Args, Report, Response, SingleResponse } from './types';
+import { Args, BundleInfo, GroupReport, Report, Response } from './types';
 
 const branchBasePath = 'br-base';
 const workspace = process.env.GITHUB_WORKSPACE || '';
@@ -20,81 +19,95 @@ const basePaths = {
   branch: Path.join(workspace, branchBasePath),
 };
 
-export const trimPath = (path: string, trim: string): string =>
-  path.startsWith(trim) ? path.slice(trim.length) : path;
-
-export const buildReport = async (files: string[]): Promise<Report> => {
-  const report: Report = {};
-  for (let i = 0; i < files.length; i++) {
-    const file = files[i];
-    const stat = await fs.stat(file);
-    report[file] = {
-      bundled: stat ? stat.size : undefined,
-    };
-  }
-  return report;
+export const buildReport = (
+  name: string,
+  newSize = 0,
+  oldSize = 0,
+): Report | undefined => {
+  if (newSize === 0 && oldSize === 0) return undefined;
+  const diff = newSize - oldSize;
+  return {
+    name,
+    newSize,
+    oldSize,
+    diff,
+    percentage: `${diff <= 0 ? '-' : '+'}${percentageDiff(
+      newSize,
+      oldSize,
+    ).toFixed(2)}`,
+  };
 };
 
-// TODO: WIP
-export const bundleSizeFolder = async ({
+export const buildGroupReport = (
+  newInfo?: BundleInfo,
+  oldInfo?: BundleInfo,
+  onlyDiff?: boolean,
+): GroupReport => {
+  const keys = Object.keys({ ...newInfo, ...oldInfo });
+  return keys.reduce<GroupReport>((acc, key) => {
+    const { bundled: oldSize = 0 /* , minified, gzipped */ } =
+      (oldInfo || {})[key] || {};
+    const { bundled: newSize = 0 /* , minified, gzipped */ } =
+      (newInfo || {})[key] || {};
+    if (onlyDiff && oldSize === newSize) return acc;
+    const report = buildReport(key, newSize, oldSize);
+    if (!report) return acc;
+    acc[key] = report;
+    return acc;
+  }, {});
+};
+
+export const buildFileInfo = async (file: string): Promise<BundleInfo> => {
+  try {
+    const stat = await fs.stat(file);
+    return {
+      [file]: {
+        bundled: stat ? stat.size : undefined,
+      },
+    };
+  } catch (error) {
+    return {};
+  }
+};
+
+export const bundleSizeFile = async ({
   path,
   branchPath,
   onlyDiff,
-}: Args): Promise<SingleResponse> => {
-  const files = await fs.readdir(path);
-  const newReport = await buildReport(files);
-  const oldFiles = await fs.readdir(branchPath);
-  const oldReport = await buildReport(oldFiles);
-  const summary =
-    !onlyDiff || !isEqual(newReport, oldReport)
-      ? diffTable.rows(newReport, oldReport)
-      : '';
-  return {
-    oldReport,
-    newReport,
-    summary,
-  };
+}: Args): Promise<GroupReport> => {
+  const newInfo = await buildFileInfo(path);
+  const oldInfo = await buildFileInfo(branchPath);
+  return buildGroupReport(newInfo, oldInfo, onlyDiff);
 };
 
 export const bundleSizeJson = async ({
   path,
   branchPath,
   onlyDiff,
-}: Args): Promise<SingleResponse> => {
+}: Args): Promise<GroupReport> => {
   const newContent = await readFile(path);
-  const newReport = newContent ? parseJSON<Report>(newContent) : undefined;
+  const newInfo = newContent ? parseJSON<BundleInfo>(newContent) : undefined;
   const oldContent = await readFile(branchPath);
-  const oldReport = oldContent ? parseJSON<Report>(oldContent) : undefined;
-  const hasReport = !!newReport || !!oldReport;
-
-  const summary =
-    hasReport && (!onlyDiff || !isEqual(newReport, oldReport))
-      ? diffTable.rows(newReport, oldReport)
-      : '';
-  return {
-    oldReport,
-    newReport,
-    summary,
-  };
+  const oldInfo = oldContent ? parseJSON<BundleInfo>(oldContent) : undefined;
+  return buildGroupReport(newInfo, oldInfo, onlyDiff);
 };
 
 export const getFilesMap = (
-  paths: string[],
+  path: string,
   options?: glob.IOptions,
-): Record<string, boolean> =>
-  paths.reduce<Record<string, boolean>>((acc, path) => {
-    const opts = { dot: true, ...options };
-    const p = path.trim();
-    const fullPath = Path.join(basePaths.main, p).replace(/\\/g, '/');
-    const branchPath = Path.join(basePaths.branch, p).replace(/\\/g, '/');
-    const newFiles = glob.sync(fullPath, opts);
-    const oldFiles = glob.sync(branchPath, opts);
-    const map = array2Map([
-      ...newFiles.map((val) => trimPath(val, basePaths.main)),
-      ...oldFiles.map((val) => trimPath(val, basePaths.branch)),
-    ]);
-    return { ...acc, ...map };
-  }, {});
+): Record<string, boolean> => {
+  const opts = { dot: true, ...options };
+  const p = path.trim();
+  const fullPath = Path.join(basePaths.main, p).replace(/\\/g, '/');
+  const branchPath = Path.join(basePaths.branch, p).replace(/\\/g, '/');
+  const newFiles = glob.sync(fullPath, opts);
+  const oldFiles = glob.sync(branchPath, opts);
+  const map = array2Map([
+    ...newFiles.map((val) => trimPath(val, basePaths.main)),
+    ...oldFiles.map((val) => trimPath(val, basePaths.branch)),
+  ]);
+  return map;
+};
 
 export const getBundleSizeDiff = async (
   paths: string,
@@ -102,48 +115,42 @@ export const getBundleSizeDiff = async (
   options: glob.IOptions = {},
 ): Promise<Response> => {
   const splited = paths.trim().split(',');
-  const fileMap = getFilesMap(splited, options);
-  info(`Files: ${JSON.stringify(fileMap)}`);
 
-  // TODO: run in paralel
-  const result = await Object.keys(fileMap).reduce<Promise<Response>>(
-    async (acc, path) => {
-      const fullPath = Path.join(basePaths.main, path);
-      const args = {
-        path: fullPath,
-        branchPath: Path.join(basePaths.branch, path),
-        onlyDiff,
-      };
-      const fn = isJsonFile(path) ? bundleSizeJson : bundleSizeFolder;
-      const report = await fn(args);
-      const memo = await acc;
-      memo.reports[fullPath] = report;
-      memo.summary = report.summary
-        ? `${memo.summary} | **${path}** | | | |\n ${report.summary}`
-        : memo.summary;
-      return memo;
+  const result = splited.reduce<Promise<Response>>(
+    async (groupAcc, groupPath) => {
+      const fileMap = getFilesMap(groupPath, options);
+      let summary = '';
+
+      // TODO: run in paralel
+      const fileKeys = Object.keys(fileMap);
+      const groupReports = await fileKeys.reduce<
+        Promise<Record<string, GroupReport>>
+      >(async (acc, key) => {
+        const fullPath = Path.join(basePaths.main, key);
+        const args = {
+          path: fullPath,
+          branchPath: Path.join(basePaths.branch, key),
+          onlyDiff,
+        };
+        const isJson = isJsonFile(key);
+        const fn = isJson ? bundleSizeJson : bundleSizeFile;
+        const report = await fn(args);
+        const rows = diffTable.rows(report);
+        if (rows.length > 0) {
+          summary += `${isJson ? `| **${key}** | | | |\n` : ''}${rows}`;
+        }
+        const memo = await acc;
+        memo[key] = report;
+        return memo;
+      }, Promise.resolve({}));
+      const groupMemo = await groupAcc;
+      if (summary.length > 0) {
+        groupMemo.summary += `${diffTable.table(summary)}\n`;
+      }
+      groupMemo.reports[groupPath] = groupReports;
+      return groupMemo;
     },
     Promise.resolve({ reports: {}, summary: '' }),
   );
-  if (result.summary && result.summary.length > 0) {
-    result.summary = diffTable.table(result.summary);
-  }
-
-  return result;
-};
-
-export const run = async (): Promise<void> => {
-  info(`Starting bundle size diff action.`);
-  const paths = getInput('paths');
-  const onlyDiff = toBoolean(getInput('onlyDiff') || 'false');
-  try {
-    if (!paths || paths.length === 0) throw new Error('Missing paths input!');
-    const { reports, summary = '' } = await getBundleSizeDiff(paths, onlyDiff);
-    setOutput('reports', reports);
-    setOutput('summary', summary);
-    info(`Bundle size action completed.`);
-  } catch (error: any) {
-    setFailed(error.message);
-    setOutput('summary', '');
-  }
+  return await result;
 };

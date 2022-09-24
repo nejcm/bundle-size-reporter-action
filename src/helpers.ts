@@ -74,3 +74,6 @@ export const array2Map = (arr: (string | number)[]): Record<string, boolean> =>
     acc[curr] = true;
     return acc;
   }, {});
+
+export const trimPath = (path: string, trim: string): string =>
+  path.startsWith(trim) ? path.slice(trim.length) : path;
