@@ -57,16 +57,14 @@ export const buildGroupReport = (
   }, {});
 };
 
-export const buildFileInfo = async (file: string): Promise<BundleInfo> => {
+export const getFileSize = async (
+  file: string,
+): Promise<number | undefined> => {
   try {
     const stat = await fs.stat(file);
-    return {
-      [file]: {
-        bundled: stat ? stat.size : undefined,
-      },
-    };
+    return stat.size;
   } catch (error) {
-    return {};
+    return undefined;
   }
 };
 
@@ -75,9 +73,24 @@ export const bundleSizeFile = async ({
   branchPath,
   onlyDiff,
 }: Args): Promise<GroupReport> => {
-  const newInfo = await buildFileInfo(path);
-  const oldInfo = await buildFileInfo(branchPath);
-  return buildGroupReport(newInfo, oldInfo, onlyDiff);
+  const newSize = await getFileSize(path);
+  const name = trimPath(path, basePaths.main);
+  const newBundleInfo = newSize
+    ? {
+        [name]: {
+          bundled: newSize,
+        },
+      }
+    : undefined;
+  const oldSize = await getFileSize(branchPath);
+  const oldBundleInfo = newSize
+    ? {
+        [name]: {
+          bundled: oldSize,
+        },
+      }
+    : undefined;
+  return buildGroupReport(newBundleInfo, oldBundleInfo, onlyDiff);
 };
 
 export const bundleSizeJson = async ({

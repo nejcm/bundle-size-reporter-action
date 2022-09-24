@@ -11,6 +11,9 @@ export const isFile = async (path: string): Promise<boolean> => {
   return stats.isFile();
 };
 
+export const getFilename = (path: string): string =>
+  path.replace(/^.*[\\/]/, '');
+
 export const readFile = async (path: string): Promise<string | undefined> => {
   try {
     return await fs.readFile(path, 'utf8');
