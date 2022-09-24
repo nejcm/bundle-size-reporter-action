@@ -3,6 +3,7 @@ import glob from 'glob';
 import Path from 'path';
 import {
   array2Map,
+  getFilename,
   isJsonFile,
   parseJSON,
   percentageDiff,
@@ -60,8 +61,9 @@ export const buildGroupReport = (
 export const buildFileInfo = async (file: string): Promise<BundleInfo> => {
   try {
     const stat = await fs.stat(file);
+    const name = getFilename(file);
     return {
-      [file]: {
+      [name]: {
         bundled: stat ? stat.size : undefined,
       },
     };
