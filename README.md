@@ -53,5 +53,4 @@ Action for reporting bundle size difference
 
 ## Example
 
-![Example](https://raw.githubusercontent.com/nejcm/bundle-size-reporter-action
-/master/example.jpg)
+![Example](https://raw.githubusercontent.com/nejcm/bundle-size-reporter-action/master/example.jpg)
