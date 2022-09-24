@@ -62,7 +62,7 @@ jobs:
         id: bundleSize
         uses: ./
         with:
-          paths: 'reports/**/*.json'
+          paths: 'reports/**/*.json,reports/**/*.js'
           onlyDiff: 'false'
 
       - name: Bundle size summary

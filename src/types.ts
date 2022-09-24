@@ -4,7 +4,7 @@ export type Args = {
   onlyDiff: boolean;
 };
 
-export type Report = Record<
+export type BundleInfo = Record<
   string,
   {
     bundled?: number;
@@ -13,13 +13,17 @@ export type Report = Record<
   }
 >;
 
-export type SingleResponse = {
-  oldReport?: Report;
-  newReport?: Report;
-  summary?: string;
+export type Report = {
+  name: string;
+  oldSize: number;
+  newSize: number;
+  diff: number;
+  percentage: string;
 };
 
+export type GroupReport = Record<string, Report>;
+
 export type Response = {
-  reports: Record<string, SingleResponse>;
+  reports: Record<string, Record<string, GroupReport>>;
   summary?: string;
 };
