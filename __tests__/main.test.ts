@@ -14,7 +14,6 @@ describe('bundle diff', () => {
       false,
       opts,
     );
-    console.log(report.summary);
     expect(report).toBeDefined();
     expect(Object.keys(report.reports).length).toBeGreaterThan(0);
     expect(report.summary?.length).toBeGreaterThan(0);
