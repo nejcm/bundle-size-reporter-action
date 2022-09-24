@@ -50,3 +50,8 @@ Action for reporting bundle size difference
       message: ${{ steps.bundleSize.outputs.summary }}
       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 ```
+
+## Example
+
+![Example](https://raw.githubusercontent.com/nejcm/bundle-size-reporter-action
+/master/example.jpg)
