@@ -26,7 +26,7 @@ Action for reporting bundle size difference
 
   - name: Bundle size report
     id: bundleSize
-    uses: nejcm/bundle-size-reporter-action@v1.0.1
+    uses: nejcm/bundle-size-reporter-action@v1.2.1
     with:
       paths: 'reports/**/*.json'
       onlyDiff: 'true'
