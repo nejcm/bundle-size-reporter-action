@@ -239,6 +239,12 @@ const bundleSizeJson = ({ path, branchPath, onlyDiff, }) => __awaiter(void 0, vo
     const newInfo = newContent ? (0, helpers_1.parseJSON)(newContent) : undefined;
     const oldContent = yield (0, helpers_1.readFile)(branchPath);
     const oldInfo = oldContent ? (0, helpers_1.parseJSON)(oldContent) : undefined;
+    (0, core_1.info)(JSON.stringify({
+        path,
+        branchPath,
+        newInfo,
+        oldInfo,
+    }));
     return (0, exports.buildGroupReport)(newInfo, oldInfo, onlyDiff);
 });
 exports.bundleSizeJson = bundleSizeJson;
@@ -264,9 +270,8 @@ const getBundleSizeDiff = (paths, onlyDiff = false, options = {}) => __awaiter(v
         let summary = '';
         const fileKeys = Object.keys(fileMap);
         const groupReports = yield fileKeys.reduce((acc, key) => __awaiter(void 0, void 0, void 0, function* () {
-            const fullPath = path_1.default.join(basePaths.main, key);
             const args = {
-                path: fullPath,
+                path: path_1.default.join(basePaths.main, key),
                 branchPath: path_1.default.join(basePaths.branch, key),
                 onlyDiff,
             };

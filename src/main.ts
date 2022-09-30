@@ -103,6 +103,14 @@ export const bundleSizeJson = async ({
   const newInfo = newContent ? parseJSON<BundleInfo>(newContent) : undefined;
   const oldContent = await readFile(branchPath);
   const oldInfo = oldContent ? parseJSON<BundleInfo>(oldContent) : undefined;
+  info(
+    JSON.stringify({
+      path,
+      branchPath,
+      newInfo,
+      oldInfo,
+    }),
+  );
   return buildGroupReport(newInfo, oldInfo, onlyDiff);
 };
 
@@ -140,9 +148,8 @@ export const getBundleSizeDiff = async (
       const groupReports = await fileKeys.reduce<
         Promise<Record<string, GroupReport>>
       >(async (acc, key) => {
-        const fullPath = Path.join(basePaths.main, key);
         const args = {
-          path: fullPath,
+          path: Path.join(basePaths.main, key),
           branchPath: Path.join(basePaths.branch, key),
           onlyDiff,
         };
