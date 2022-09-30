@@ -13,7 +13,7 @@ export const run = async (): Promise<void> => {
     setOutput('summary', summary);
     info(`Bundle size action completed.`);
   } catch (error: any) {
-    setFailed(error.message);
+    setFailed(error.message || error);
     setOutput('summary', '');
   }
 };

@@ -25,5 +25,5 @@ export type GroupReport = Record<string, Report>;
 
 export type Response = {
   reports: Record<string, Record<string, GroupReport>>;
-  summary?: string;
+  summary: string;
 };

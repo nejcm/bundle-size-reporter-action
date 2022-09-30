@@ -131,7 +131,7 @@ export const getBundleSizeDiff = async (
   const splited = paths.trim().split(',');
   info(`Paths: ${JSON.stringify(splited)}`);
 
-  const result = splited.reduce<Promise<Response>>(
+  const result = await splited.reduce<Promise<Response>>(
     async (groupAcc, groupPath) => {
       const fileMap = getFilesMap(groupPath, options);
       info(`Files: ${JSON.stringify(fileMap)}`);
@@ -167,5 +167,6 @@ export const getBundleSizeDiff = async (
     },
     Promise.resolve({ reports: {}, summary: '' }),
   );
-  return await result;
+  result.summary = result.summary.trim();
+  return result;
 };
