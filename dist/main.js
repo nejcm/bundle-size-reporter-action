@@ -124,21 +124,20 @@ const getBundleSizeDiff = (paths, onlyDiff = false, options = {}) => __awaiter(v
             const fn = isJson ? exports.bundleSizeJson : exports.bundleSizeFile;
             const report = yield fn(args);
             const rows = markdown_1.diffTable.rows(report);
-            if (rows.length > 0) {
-                summary += `${isJson ? `| **${key}** | | | |\n` : ''}${rows}`;
+            if (rows.length > 1) {
+                summary = `${summary}${isJson ? `| **${key}** | | | |\n` : ''}${rows}`;
             }
             const memo = yield acc;
             memo[key] = report;
             return memo;
         }), Promise.resolve({}));
         const groupMemo = yield groupAcc;
-        if (summary.length > 0) {
-            groupMemo.summary += `${markdown_1.diffTable.table(summary)}\n`;
+        if (summary.length > 1) {
+            groupMemo.summary = `${groupMemo.summary}${markdown_1.diffTable.table(summary)}\n`;
         }
         groupMemo.reports[groupPath] = groupReports;
         return groupMemo;
     }), Promise.resolve({ reports: {}, summary: '' }));
-    result.summary = result.summary.trim();
     return result;
 });
 exports.getBundleSizeDiff = getBundleSizeDiff;

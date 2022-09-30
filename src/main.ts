@@ -150,22 +150,23 @@ export const getBundleSizeDiff = async (
         const fn = isJson ? bundleSizeJson : bundleSizeFile;
         const report = await fn(args);
         const rows = diffTable.rows(report);
-        if (rows.length > 0) {
-          summary += `${isJson ? `| **${key}** | | | |\n` : ''}${rows}`;
+        if (rows.length > 1) {
+          summary = `${summary}${
+            isJson ? `| **${key}** | | | |\n` : ''
+          }${rows}`;
         }
         const memo = await acc;
         memo[key] = report;
         return memo;
       }, Promise.resolve({}));
       const groupMemo = await groupAcc;
-      if (summary.length > 0) {
-        groupMemo.summary += `${diffTable.table(summary)}\n`;
+      if (summary.length > 1) {
+        groupMemo.summary = `${groupMemo.summary}${diffTable.table(summary)}\n`;
       }
       groupMemo.reports[groupPath] = groupReports;
       return groupMemo;
     },
     Promise.resolve({ reports: {}, summary: '' }),
   );
-  result.summary = result.summary.trim();
   return result;
 };

@@ -129,6 +129,7 @@ const run = () => __awaiter(void 0, void 0, void 0, function* () {
         const { reports, summary = '' } = yield (0, main_1.getBundleSizeDiff)(paths, onlyDiff);
         (0, core_1.setOutput)('reports', reports);
         (0, core_1.setOutput)('summary', summary);
+        (0, core_1.info)(`Reports:\n${JSON.stringify(reports)}`);
         (0, core_1.info)(`Summary:\n${summary}`);
         (0, core_1.info)(`Bundle size action completed.`);
     }
@@ -273,21 +274,20 @@ const getBundleSizeDiff = (paths, onlyDiff = false, options = {}) => __awaiter(v
             const fn = isJson ? exports.bundleSizeJson : exports.bundleSizeFile;
             const report = yield fn(args);
             const rows = markdown_1.diffTable.rows(report);
-            if (rows.length > 0) {
-                summary += `${isJson ? `| **${key}** | | | |\n` : ''}${rows}`;
+            if (rows.length > 1) {
+                summary = `${summary}${isJson ? `| **${key}** | | | |\n` : ''}${rows}`;
             }
             const memo = yield acc;
             memo[key] = report;
             return memo;
         }), Promise.resolve({}));
         const groupMemo = yield groupAcc;
-        if (summary.length > 0) {
-            groupMemo.summary += `${markdown_1.diffTable.table(summary)}\n`;
+        if (summary.length > 1) {
+            groupMemo.summary = `${groupMemo.summary}${markdown_1.diffTable.table(summary)}\n`;
         }
         groupMemo.reports[groupPath] = groupReports;
         return groupMemo;
     }), Promise.resolve({ reports: {}, summary: '' }));
-    result.summary = result.summary.trim();
     return result;
 });
 exports.getBundleSizeDiff = getBundleSizeDiff;
