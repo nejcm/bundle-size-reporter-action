@@ -163,7 +163,6 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.getBundleSizeDiff = exports.getFilesMap = exports.bundleSizeJson = exports.bundleSizeFile = exports.getFileSize = exports.buildGroupReport = exports.buildReport = void 0;
-const core_1 = __nccwpck_require__(2186);
 const promises_1 = __importDefault(__nccwpck_require__(3292));
 const glob_1 = __importDefault(__nccwpck_require__(1957));
 const path_1 = __importDefault(__nccwpck_require__(1017));
@@ -191,8 +190,8 @@ exports.buildReport = buildReport;
 const buildGroupReport = (newInfo, oldInfo, onlyDiff) => {
     const keys = Object.keys(Object.assign(Object.assign({}, newInfo), oldInfo));
     return keys.reduce((acc, key) => {
-        const { bundled: oldSize = 0 /* , minified, gzipped */ } = (oldInfo || {})[key] || {};
-        const { bundled: newSize = 0 /* , minified, gzipped */ } = (newInfo || {})[key] || {};
+        const { bundled: oldSize = 0 } = (oldInfo || {})[key] || {};
+        const { bundled: newSize = 0 } = (newInfo || {})[key] || {};
         if (onlyDiff && oldSize === newSize)
             return acc;
         const report = (0, exports.buildReport)(key, newSize, oldSize);
@@ -260,13 +259,11 @@ const getBundleSizeDiff = (paths, onlyDiff = false, options = {}) => __awaiter(v
     const splited = paths.trim().split(',');
     const result = yield splited.reduce((groupAcc, groupPath) => __awaiter(void 0, void 0, void 0, function* () {
         const fileMap = (0, exports.getFilesMap)(groupPath, options);
-        (0, core_1.info)(`Files: ${JSON.stringify(fileMap)}`);
         let summary = '';
         const fileKeys = Object.keys(fileMap);
         const groupReports = yield fileKeys.reduce((acc, key) => __awaiter(void 0, void 0, void 0, function* () {
-            const fullPath = path_1.default.join(basePaths.main, key);
             const args = {
-                path: fullPath,
+                path: path_1.default.join(basePaths.main, key),
                 branchPath: path_1.default.join(basePaths.branch, key),
                 onlyDiff,
             };
@@ -283,11 +280,12 @@ const getBundleSizeDiff = (paths, onlyDiff = false, options = {}) => __awaiter(v
         }), Promise.resolve({}));
         const groupMemo = yield groupAcc;
         if (summary.length > 1) {
+            groupMemo.hasDifferences = true;
             groupMemo.summary = `${groupMemo.summary}${markdown_1.diffTable.table(summary)}\n`;
         }
         groupMemo.reports[groupPath] = groupReports;
         return groupMemo;
-    }), Promise.resolve({ reports: {}, summary: '' }));
+    }), Promise.resolve({ reports: {}, summary: '', hasDifferences: false }));
     return result;
 });
 exports.getBundleSizeDiff = getBundleSizeDiff;

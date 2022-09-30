@@ -1,4 +1,3 @@
-import { info } from '@actions/core';
 import fs from 'fs/promises';
 import glob from 'glob';
 import Path from 'path';
@@ -131,7 +130,6 @@ export const getBundleSizeDiff = async (
   const result = await splited.reduce<Promise<Response>>(
     async (groupAcc, groupPath) => {
       const fileMap = getFilesMap(groupPath, options);
-      info(`Files: ${JSON.stringify(fileMap)}`);
       let summary = '';
 
       const fileKeys = Object.keys(fileMap);

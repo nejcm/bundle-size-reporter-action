@@ -37,13 +37,13 @@ Action for reporting bundle size difference
 ```
   # post action summary
   - name: Bundle size summary
-    if: ${{ steps.bundleSize.outputs.summary }} != ''
+    if: ${{ steps.bundleSize.outputs.hasDifferences }} == 'true'
     run: |
       echo "${{ steps.bundleSize.outputs.summary }}" >> $GITHUB_STEP_SUMMARY
 
   # post PR comment
   - uses: marocchino/sticky-pull-request-comment@v2
-    if: ${{ steps.bundleSize.outputs.summary }} != ''
+    if: ${{ steps.bundleSize.outputs.hasDifferences }} == 'true'
     with:
       number: ${{ github.event.pull_request.number }}
       header: 'Bundle size'
