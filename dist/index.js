@@ -126,16 +126,17 @@ const run = () => __awaiter(void 0, void 0, void 0, function* () {
     try {
         if (!paths || paths.length === 0)
             throw new Error('Missing paths input!');
-        const { reports, summary = '' } = yield (0, main_1.getBundleSizeDiff)(paths, onlyDiff);
+        const { reports, summary = '', hasDifferences, } = yield (0, main_1.getBundleSizeDiff)(paths, onlyDiff);
         (0, core_1.setOutput)('reports', reports);
         (0, core_1.setOutput)('summary', summary);
+        (0, core_1.setOutput)('hasDifferences', hasDifferences);
         (0, core_1.info)(`Reports:\n${JSON.stringify(reports)}`);
         (0, core_1.info)(`Summary:\n${summary}`);
+        (0, core_1.info)(`Has differences:\n${hasDifferences}`);
         (0, core_1.info)(`Bundle size action completed.`);
     }
     catch (error) {
         (0, core_1.setFailed)(error.message || error);
-        (0, core_1.setOutput)('summary', '');
     }
 });
 exports.run = run;

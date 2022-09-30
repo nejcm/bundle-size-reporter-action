@@ -4,15 +4,17 @@ Action for reporting bundle size difference
 
 ## Inputs
 
-`paths` - [**Required**] Paths to bundle size json files. Comma separated list.
+**paths** - [Required] Paths to bundle size json files. Comma separated list.
 
-`onlyDiff` - Report only differences. Default `"true"`.
+**onlyDiff** - Report only differences. Default `"true"`.
 
 ## Outputs
 
-`summary` - Table of bundle size differences in markdown format.
+**summary** - `string` Table of bundle size differences in markdown format.
 
-`reports` - Object holding all file/bundle reports.
+**reports** - `object` All file/bundle reports.
+
+**hasDifferences** - `boolean` Did any bundle size change
 
 ## Usage
 
