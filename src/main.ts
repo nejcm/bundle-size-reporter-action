@@ -46,10 +46,8 @@ export const buildGroupReport = (
 ): GroupReport => {
   const keys = Object.keys({ ...newInfo, ...oldInfo });
   return keys.reduce<GroupReport>((acc, key) => {
-    const { bundled: oldSize = 0 /* , minified, gzipped */ } =
-      (oldInfo || {})[key] || {};
-    const { bundled: newSize = 0 /* , minified, gzipped */ } =
-      (newInfo || {})[key] || {};
+    const { bundled: oldSize = 0 } = (oldInfo || {})[key] || {};
+    const { bundled: newSize = 0 } = (newInfo || {})[key] || {};
     if (onlyDiff && oldSize === newSize) return acc;
     const report = buildReport(key, newSize, oldSize);
     if (!report) return acc;
@@ -140,9 +138,8 @@ export const getBundleSizeDiff = async (
       const groupReports = await fileKeys.reduce<
         Promise<Record<string, GroupReport>>
       >(async (acc, key) => {
-        const fullPath = Path.join(basePaths.main, key);
         const args = {
-          path: fullPath,
+          path: Path.join(basePaths.main, key),
           branchPath: Path.join(basePaths.branch, key),
           onlyDiff,
         };
@@ -159,14 +156,15 @@ export const getBundleSizeDiff = async (
         memo[key] = report;
         return memo;
       }, Promise.resolve({}));
-      const groupMemo = await groupAcc;
+      const groupMemo: Response = await groupAcc;
       if (summary.length > 1) {
+        groupMemo.hasDifferences = true;
         groupMemo.summary = `${groupMemo.summary}${diffTable.table(summary)}\n`;
       }
       groupMemo.reports[groupPath] = groupReports;
       return groupMemo;
     },
-    Promise.resolve({ reports: {}, summary: '' }),
+    Promise.resolve({ reports: {}, summary: '', hasDifferences: false }),
   );
   return result;
 };
