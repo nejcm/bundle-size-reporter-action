@@ -66,12 +66,12 @@ jobs:
           onlyDiff: 'false'
 
       - name: Bundle size summary
-        if: ${{ steps.bundleSize.outputs.hasDifferences }} == 'true'
+        if: steps.bundleSize.outputs.hasDifferences == 'true'
         run: |
           echo "${{ steps.bundleSize.outputs.summary }}" >> $GITHUB_STEP_SUMMARY
       
       - uses: marocchino/sticky-pull-request-comment@v2
-        if: ${{ steps.bundleSize.outputs.hasDifferences }} == 'true'
+        if: steps.bundleSize.outputs.hasDifferences == 'true'
         with:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           number: ${{ github.event.pull_request.number }}
