@@ -1,3 +1,4 @@
+import { info } from '@actions/core';
 import fs from 'fs/promises';
 import glob from 'glob';
 import Path from 'path';
@@ -128,13 +129,14 @@ export const getBundleSizeDiff = async (
   options: glob.IOptions = {},
 ): Promise<Response> => {
   const splited = paths.trim().split(',');
+  info(`Paths: ${JSON.stringify(splited)}`);
 
   const result = splited.reduce<Promise<Response>>(
     async (groupAcc, groupPath) => {
       const fileMap = getFilesMap(groupPath, options);
+      info(`Files: ${JSON.stringify(fileMap)}`);
       let summary = '';
 
-      // TODO: run in paralel
       const fileKeys = Object.keys(fileMap);
       const groupReports = await fileKeys.reduce<
         Promise<Record<string, GroupReport>>
