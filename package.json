@@ -1,6 +1,6 @@
 {
   "name": "bundle-size-reporter-action",
-  "version": "1.2.3",
+  "version": "1.2.4",
   "description": "Bundle size reporter",
   "main": "dist/index.js",
   "keywords": [

@@ -11,6 +11,7 @@ export const run = async (): Promise<void> => {
     const { reports, summary = '' } = await getBundleSizeDiff(paths, onlyDiff);
     setOutput('reports', reports);
     setOutput('summary', summary);
+    info(`Summary:\n${summary}`);
     info(`Bundle size action completed.`);
   } catch (error: any) {
     setFailed(error.message || error);

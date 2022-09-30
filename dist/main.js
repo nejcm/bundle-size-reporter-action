@@ -13,6 +13,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.getBundleSizeDiff = exports.getFilesMap = exports.bundleSizeJson = exports.bundleSizeFile = exports.getFileSize = exports.buildGroupReport = exports.buildReport = void 0;
+const core_1 = require("@actions/core");
 const promises_1 = __importDefault(require("fs/promises"));
 const glob_1 = __importDefault(require("glob"));
 const path_1 = __importDefault(require("path"));
@@ -107,10 +108,10 @@ const getFilesMap = (path, options) => {
 exports.getFilesMap = getFilesMap;
 const getBundleSizeDiff = (paths, onlyDiff = false, options = {}) => __awaiter(void 0, void 0, void 0, function* () {
     const splited = paths.trim().split(',');
-    const result = splited.reduce((groupAcc, groupPath) => __awaiter(void 0, void 0, void 0, function* () {
+    const result = yield splited.reduce((groupAcc, groupPath) => __awaiter(void 0, void 0, void 0, function* () {
         const fileMap = (0, exports.getFilesMap)(groupPath, options);
+        (0, core_1.info)(`Files: ${JSON.stringify(fileMap)}`);
         let summary = '';
-        // TODO: run in paralel
         const fileKeys = Object.keys(fileMap);
         const groupReports = yield fileKeys.reduce((acc, key) => __awaiter(void 0, void 0, void 0, function* () {
             const fullPath = path_1.default.join(basePaths.main, key);
@@ -137,6 +138,7 @@ const getBundleSizeDiff = (paths, onlyDiff = false, options = {}) => __awaiter(v
         groupMemo.reports[groupPath] = groupReports;
         return groupMemo;
     }), Promise.resolve({ reports: {}, summary: '' }));
-    return yield result;
+    result.summary = result.summary.trim();
+    return result;
 });
 exports.getBundleSizeDiff = getBundleSizeDiff;

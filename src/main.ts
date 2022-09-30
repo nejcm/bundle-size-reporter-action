@@ -129,7 +129,6 @@ export const getBundleSizeDiff = async (
   options: glob.IOptions = {},
 ): Promise<Response> => {
   const splited = paths.trim().split(',');
-  info(`Paths: ${JSON.stringify(splited)}`);
 
   const result = await splited.reduce<Promise<Response>>(
     async (groupAcc, groupPath) => {
