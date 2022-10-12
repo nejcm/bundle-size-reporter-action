@@ -31,7 +31,7 @@ export const buildReport = (
     newSize,
     oldSize,
     diff,
-    percentage: `${diff <= 0 ? '-' : '+'}${percentageDiff(
+    percentage: `${diff <= 0 ? '' : '+'}${percentageDiff(
       newSize,
       oldSize,
     ).toFixed(2)}`,

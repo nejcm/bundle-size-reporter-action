@@ -33,7 +33,7 @@ const buildReport = (name, newSize = 0, oldSize = 0) => {
         newSize,
         oldSize,
         diff,
-        percentage: `${diff <= 0 ? '-' : '+'}${(0, helpers_1.percentageDiff)(newSize, oldSize).toFixed(2)}`,
+        percentage: `${diff <= 0 ? '' : '+'}${(0, helpers_1.percentageDiff)(newSize, oldSize).toFixed(2)}`,
     };
 };
 exports.buildReport = buildReport;
