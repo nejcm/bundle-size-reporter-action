@@ -3,6 +3,7 @@ import glob from 'glob';
 import Path from 'path';
 import {
   array2Map,
+  convertBytes,
   isJsonFile,
   parseJSON,
   percentageDiff,
@@ -131,6 +132,7 @@ export const getBundleSizeDiff = async (
     async (groupAcc, groupPath) => {
       const fileMap = getFilesMap(groupPath, options);
       let summary = '';
+      let sum = 0;
 
       const fileKeys = Object.keys(fileMap);
       const groupReports = await fileKeys.reduce<
@@ -145,6 +147,10 @@ export const getBundleSizeDiff = async (
         const fn = isJson ? bundleSizeJson : bundleSizeFile;
         const report = await fn(args);
         const rows = diffTable.rows(report);
+        sum += Object.keys(report).reduce(
+          (rAcc, rk) => rAcc + report[rk].diff,
+          0,
+        );
         if (rows.length > 1) {
           summary = `${summary}${
             isJson ? `| **${key}** | | | |\n` : ''
@@ -157,7 +163,12 @@ export const getBundleSizeDiff = async (
       const groupMemo: Response = await groupAcc;
       if (summary.length > 1) {
         groupMemo.hasDifferences = true;
-        groupMemo.summary = `${groupMemo.summary}${diffTable.table(summary)}\n`;
+        groupMemo.summary = `${groupMemo.summary}${diffTable.table(
+          summary,
+        )}| **TOTAL** | | | **${sum <= 0 ? '' : '+'}${convertBytes(
+          sum,
+          'KB',
+        )}KB** |\n\n`;
       }
       groupMemo.reports[groupPath] = groupReports;
       return groupMemo;

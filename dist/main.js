@@ -110,6 +110,7 @@ const getBundleSizeDiff = (paths, onlyDiff = false, options = {}) => __awaiter(v
     const result = yield splited.reduce((groupAcc, groupPath) => __awaiter(void 0, void 0, void 0, function* () {
         const fileMap = (0, exports.getFilesMap)(groupPath, options);
         let summary = '';
+        let sum = 0;
         const fileKeys = Object.keys(fileMap);
         const groupReports = yield fileKeys.reduce((acc, key) => __awaiter(void 0, void 0, void 0, function* () {
             const args = {
@@ -121,6 +122,7 @@ const getBundleSizeDiff = (paths, onlyDiff = false, options = {}) => __awaiter(v
             const fn = isJson ? exports.bundleSizeJson : exports.bundleSizeFile;
             const report = yield fn(args);
             const rows = markdown_1.diffTable.rows(report);
+            sum += Object.keys(report).reduce((rAcc, rk) => rAcc + report[rk].diff, 0);
             if (rows.length > 1) {
                 summary = `${summary}${isJson ? `| **${key}** | | | |\n` : ''}${rows}`;
             }
@@ -131,7 +133,7 @@ const getBundleSizeDiff = (paths, onlyDiff = false, options = {}) => __awaiter(v
         const groupMemo = yield groupAcc;
         if (summary.length > 1) {
             groupMemo.hasDifferences = true;
-            groupMemo.summary = `${groupMemo.summary}${markdown_1.diffTable.table(summary)}\n`;
+            groupMemo.summary = `${groupMemo.summary}${markdown_1.diffTable.table(summary)}| **TOTAL** | | | **${sum <= 0 ? '' : '+'}${(0, helpers_1.convertBytes)(sum, 'KB')}KB** |\n\n`;
         }
         groupMemo.reports[groupPath] = groupReports;
         return groupMemo;
