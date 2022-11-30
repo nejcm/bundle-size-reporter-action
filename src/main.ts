@@ -115,8 +115,8 @@ export const getFilesMap = (
   const newFiles = glob.sync(fullPath, opts);
   const oldFiles = glob.sync(branchPath, opts);
   const map = array2Map([
-    ...newFiles.map((val) => trimPath(val, basePaths.main)),
-    ...oldFiles.map((val) => trimPath(val, basePaths.branch)),
+    ...newFiles.map((val: string) => trimPath(val, basePaths.main)),
+    ...oldFiles.map((val: string) => trimPath(val, basePaths.branch)),
   ]);
   return map;
 };
@@ -151,7 +151,7 @@ export const getBundleSizeDiff = async (
           (rAcc, rk) => rAcc + report[rk].diff,
           0,
         );
-        if (rows.length > 1) {
+        if (rows.length > 2) {
           summary = `${summary}${
             isJson ? `| **${key}** | | | |\n` : ''
           }${rows}`;
@@ -161,7 +161,7 @@ export const getBundleSizeDiff = async (
         return memo;
       }, Promise.resolve({}));
       const groupMemo: Response = await groupAcc;
-      if (summary.length > 1) {
+      if (summary.length > 2) {
         groupMemo.hasDifferences = true;
         groupMemo.summary = `${groupMemo.summary}${diffTable.table(
           summary,

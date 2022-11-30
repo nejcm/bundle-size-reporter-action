@@ -123,7 +123,7 @@ const getBundleSizeDiff = (paths, onlyDiff = false, options = {}) => __awaiter(v
             const report = yield fn(args);
             const rows = markdown_1.diffTable.rows(report);
             sum += Object.keys(report).reduce((rAcc, rk) => rAcc + report[rk].diff, 0);
-            if (rows.length > 1) {
+            if (rows.length > 2) {
                 summary = `${summary}${isJson ? `| **${key}** | | | |\n` : ''}${rows}`;
             }
             const memo = yield acc;
@@ -131,7 +131,7 @@ const getBundleSizeDiff = (paths, onlyDiff = false, options = {}) => __awaiter(v
             return memo;
         }), Promise.resolve({}));
         const groupMemo = yield groupAcc;
-        if (summary.length > 1) {
+        if (summary.length > 2) {
             groupMemo.hasDifferences = true;
             groupMemo.summary = `${groupMemo.summary}${markdown_1.diffTable.table(summary)}| **TOTAL** | | | **${sum <= 0 ? '' : '+'}${(0, helpers_1.convertBytes)(sum, 'KB')}KB** |\n\n`;
         }
