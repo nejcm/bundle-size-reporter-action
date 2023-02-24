@@ -1,6 +1,7 @@
 # Bundle size reporter github action
 
-Action for reporting bundle size difference
+Action for reporting bundle size difference.
+Works with bundle size json report files or actuaal files. Check reports and tests folder for examples.
 
 ## Inputs
 
