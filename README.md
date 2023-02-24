@@ -1,7 +1,9 @@
 # Bundle size reporter github action
 
 Action for reporting bundle size difference.
-Works with bundle size json report files or actuaal files. Check reports and tests folder for examples.
+Works with bundle size json report files or actuaal files. Check reports and tests folder for examples of files.
+
+> ! Does not work with files with different names accross branches (eg.: bundlers that produce different/hashed file names each build)
 
 ## Inputs
 
