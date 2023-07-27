@@ -2,6 +2,7 @@ export type Args = {
   branchPath: string;
   path: string;
   onlyDiff: boolean;
+  filter?: RegExp;
 };
 
 export type BundleInfo = Record<

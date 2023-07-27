@@ -3,7 +3,7 @@ import { GroupReport, Report } from './types';
 
 const SZ = 'KB';
 
-const head = `| File | Previous size | New size | Difference | \n|:---|---:|---:|---:| \n`;
+const head = `| Folder/File | Previous size | New size | Difference | \n|:---|---:|---:|---:| \n`;
 
 const row = ({ name, newSize, oldSize, diff, percentage }: Report): string => {
   const newBytes = newSize ? `${convertBytes(newSize, SZ)}${SZ}` : '';

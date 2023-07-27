@@ -37,9 +37,11 @@ const buildReport = (name, newSize = 0, oldSize = 0) => {
     };
 };
 exports.buildReport = buildReport;
-const buildGroupReport = (newInfo, oldInfo, onlyDiff) => {
+const buildGroupReport = (newInfo, oldInfo, onlyDiff, filter) => {
     const keys = Object.keys(Object.assign(Object.assign({}, newInfo), oldInfo));
     return keys.reduce((acc, key) => {
+        if (filter && !key.match(filter))
+            return acc;
         const { bundled: oldSize = 0 } = (oldInfo || {})[key] || {};
         const { bundled: newSize = 0 } = (newInfo || {})[key] || {};
         if (onlyDiff && oldSize === newSize)
@@ -62,7 +64,7 @@ const getFileSize = (file) => __awaiter(void 0, void 0, void 0, function* () {
     }
 });
 exports.getFileSize = getFileSize;
-const bundleSizeFile = ({ path, branchPath, onlyDiff, }) => __awaiter(void 0, void 0, void 0, function* () {
+const bundleSizeFile = ({ path, branchPath, onlyDiff, filter, }) => __awaiter(void 0, void 0, void 0, function* () {
     const newSize = yield (0, exports.getFileSize)(path);
     const name = (0, helpers_1.trimPath)(path, basePaths.main);
     const newBundleInfo = newSize
@@ -80,15 +82,15 @@ const bundleSizeFile = ({ path, branchPath, onlyDiff, }) => __awaiter(void 0, vo
             },
         }
         : undefined;
-    return (0, exports.buildGroupReport)(newBundleInfo, oldBundleInfo, onlyDiff);
+    return (0, exports.buildGroupReport)(newBundleInfo, oldBundleInfo, onlyDiff, filter);
 });
 exports.bundleSizeFile = bundleSizeFile;
-const bundleSizeJson = ({ path, branchPath, onlyDiff, }) => __awaiter(void 0, void 0, void 0, function* () {
+const bundleSizeJson = ({ path, branchPath, onlyDiff, filter, }) => __awaiter(void 0, void 0, void 0, function* () {
     const newContent = yield (0, helpers_1.readFile)(path);
     const newInfo = newContent ? (0, helpers_1.parseJSON)(newContent) : undefined;
     const oldContent = yield (0, helpers_1.readFile)(branchPath);
     const oldInfo = oldContent ? (0, helpers_1.parseJSON)(oldContent) : undefined;
-    return (0, exports.buildGroupReport)(newInfo, oldInfo, onlyDiff);
+    return (0, exports.buildGroupReport)(newInfo, oldInfo, onlyDiff, filter);
 });
 exports.bundleSizeJson = bundleSizeJson;
 const getFilesMap = (path, options) => {
@@ -105,26 +107,34 @@ const getFilesMap = (path, options) => {
     return map;
 };
 exports.getFilesMap = getFilesMap;
-const getBundleSizeDiff = (paths, onlyDiff = false, options = {}) => __awaiter(void 0, void 0, void 0, function* () {
+const getBundleSizeDiff = (paths, onlyDiff = false, filter, options = {}) => __awaiter(void 0, void 0, void 0, function* () {
     const splited = paths.trim().split(',');
+    const filterRegex = filter && filter.length > 0 ? new RegExp(filter, 'gi') : undefined;
     const result = yield splited.reduce((groupAcc, groupPath) => __awaiter(void 0, void 0, void 0, function* () {
         const fileMap = (0, exports.getFilesMap)(groupPath, options);
         let summary = '';
-        let sum = 0;
+        const sums = {
+            diff: 0,
+        };
         const fileKeys = Object.keys(fileMap);
         const groupReports = yield fileKeys.reduce((acc, key) => __awaiter(void 0, void 0, void 0, function* () {
+            const filePath = path_1.default.join(basePaths.main, key);
             const args = {
-                path: path_1.default.join(basePaths.main, key),
+                path: filePath,
                 branchPath: path_1.default.join(basePaths.branch, key),
                 onlyDiff,
+                filter: filterRegex,
             };
             const isJson = (0, helpers_1.isJsonFile)(key);
             const fn = isJson ? exports.bundleSizeJson : exports.bundleSizeFile;
             const report = yield fn(args);
             const rows = markdown_1.diffTable.rows(report);
-            sum += Object.keys(report).reduce((rAcc, rk) => rAcc + report[rk].diff, 0);
+            const reportVals = Object.values(report);
+            for (let i = 0; i < reportVals.length; i++) {
+                sums.diff += reportVals[i].diff;
+            }
             if (rows.length > 2) {
-                summary = `${summary}${isJson ? `| **${key}** | | | |\n` : ''}${rows}`;
+                summary = `${summary}${isJson ? `| 📁 **${key}** | | | |\n` : ''}${rows}`;
             }
             const memo = yield acc;
             memo[key] = report;
@@ -133,7 +143,7 @@ const getBundleSizeDiff = (paths, onlyDiff = false, options = {}) => __awaiter(v
         const groupMemo = yield groupAcc;
         if (summary.length > 2) {
             groupMemo.hasDifferences = true;
-            groupMemo.summary = `${groupMemo.summary}${markdown_1.diffTable.table(summary)}| **TOTAL** | | | **${sum <= 0 ? '' : '+'}${(0, helpers_1.convertBytes)(sum, 'KB')}KB** |\n\n`;
+            groupMemo.summary = `${groupMemo.summary}${markdown_1.diffTable.table(summary)}| **TOTAL** | | | **${sums.diff <= 0 ? '' : '+'}${(0, helpers_1.convertBytes)(sums.diff, 'KB')}KB** |\n\n`;
         }
         groupMemo.reports[groupPath] = groupReports;
         return groupMemo;

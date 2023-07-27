@@ -43,9 +43,11 @@ export const buildGroupReport = (
   newInfo?: BundleInfo,
   oldInfo?: BundleInfo,
   onlyDiff?: boolean,
+  filter?: RegExp,
 ): GroupReport => {
   const keys = Object.keys({ ...newInfo, ...oldInfo });
   return keys.reduce<GroupReport>((acc, key) => {
+    if (filter && !key.match(filter)) return acc;
     const { bundled: oldSize = 0 } = (oldInfo || {})[key] || {};
     const { bundled: newSize = 0 } = (newInfo || {})[key] || {};
     if (onlyDiff && oldSize === newSize) return acc;
@@ -71,6 +73,7 @@ export const bundleSizeFile = async ({
   path,
   branchPath,
   onlyDiff,
+  filter,
 }: Args): Promise<GroupReport> => {
   const newSize = await getFileSize(path);
   const name = trimPath(path, basePaths.main);
@@ -89,19 +92,20 @@ export const bundleSizeFile = async ({
         },
       }
     : undefined;
-  return buildGroupReport(newBundleInfo, oldBundleInfo, onlyDiff);
+  return buildGroupReport(newBundleInfo, oldBundleInfo, onlyDiff, filter);
 };
 
 export const bundleSizeJson = async ({
   path,
   branchPath,
   onlyDiff,
+  filter,
 }: Args): Promise<GroupReport> => {
   const newContent = await readFile(path);
   const newInfo = newContent ? parseJSON<BundleInfo>(newContent) : undefined;
   const oldContent = await readFile(branchPath);
   const oldInfo = oldContent ? parseJSON<BundleInfo>(oldContent) : undefined;
-  return buildGroupReport(newInfo, oldInfo, onlyDiff);
+  return buildGroupReport(newInfo, oldInfo, onlyDiff, filter);
 };
 
 export const getFilesMap = (
@@ -124,52 +128,62 @@ export const getFilesMap = (
 export const getBundleSizeDiff = async (
   paths: string,
   onlyDiff = false,
+  filter?: string,
   options: glob.IOptions = {},
 ): Promise<Response> => {
   const splited = paths.trim().split(',');
+  const filterRegex =
+    filter && filter.length > 0 ? new RegExp(filter, 'gi') : undefined;
 
   const result = await splited.reduce<Promise<Response>>(
     async (groupAcc, groupPath) => {
       const fileMap = getFilesMap(groupPath, options);
       let summary = '';
-      let sum = 0;
+      const sums = {
+        diff: 0,
+      };
 
       const fileKeys = Object.keys(fileMap);
       const groupReports = await fileKeys.reduce<
         Promise<Record<string, GroupReport>>
       >(async (acc, key) => {
-        const args = {
-          path: Path.join(basePaths.main, key),
+        const filePath = Path.join(basePaths.main, key);
+        const args: Args = {
+          path: filePath,
           branchPath: Path.join(basePaths.branch, key),
           onlyDiff,
+          filter: filterRegex,
         };
         const isJson = isJsonFile(key);
         const fn = isJson ? bundleSizeJson : bundleSizeFile;
         const report = await fn(args);
+
         const rows = diffTable.rows(report);
-        sum += Object.keys(report).reduce(
-          (rAcc, rk) => rAcc + report[rk].diff,
-          0,
-        );
+        const reportVals = Object.values(report);
+        for (let i = 0; i < reportVals.length; i++) {
+          sums.diff += reportVals[i].diff;
+        }
         if (rows.length > 2) {
           summary = `${summary}${
-            isJson ? `| **${key}** | | | |\n` : ''
+            isJson ? `| 📁 **${key}** | | | |\n` : ''
           }${rows}`;
         }
         const memo = await acc;
         memo[key] = report;
         return memo;
       }, Promise.resolve({}));
+
       const groupMemo: Response = await groupAcc;
       if (summary.length > 2) {
         groupMemo.hasDifferences = true;
         groupMemo.summary = `${groupMemo.summary}${diffTable.table(
           summary,
-        )}| **TOTAL** | | | **${sum <= 0 ? '' : '+'}${convertBytes(
-          sum,
+        )}| **TOTAL** | | | **${sums.diff <= 0 ? '' : '+'}${convertBytes(
+          sums.diff,
           'KB',
         )}KB** |\n\n`;
       }
+
       groupMemo.reports[groupPath] = groupReports;
       return groupMemo;
     },

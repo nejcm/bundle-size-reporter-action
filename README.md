@@ -1,15 +1,18 @@
 # Bundle size reporter github action
 
-Action for reporting bundle size difference.
-Works with bundle size json report files or actual files. Check reports and tests folder for examples of files.
+Action for reporting bundle size difference. Works with bundle size json report
+files or actual files. Check reports and tests folder for examples of files.
 
-> ! Does not work with files with different names accross branches (eg.: bundlers that produce different/hashed file names each build)
+> ! Does not work with files with different names accross branches (eg.:
+> bundlers that produce different/hashed file names each build)
 
 ## Inputs
 
 **paths** - [Required] Paths to bundle size json files. Comma separated list.
 
 **onlyDiff** - Report only differences. Default `"true"`.
+
+**filter** - Regex filter based on file path.
 
 ## Outputs
 
@@ -35,6 +38,7 @@ Works with bundle size json report files or actual files. Check reports and test
     with:
       paths: 'reports/**/*.json'
       onlyDiff: 'true'
+      filter: '.*\\.esm\\.js'
 ```
 
 ### Post a comment and action summary

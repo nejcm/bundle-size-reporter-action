@@ -5,6 +5,7 @@ import { getBundleSizeDiff } from './main';
 export const run = async (): Promise<void> => {
   info(`Starting bundle size diff action.`);
   const paths = getInput('paths');
+  const filter = getInput('filter');
   const onlyDiff = toBoolean(getInput('onlyDiff') || 'false');
   try {
     if (!paths || paths.length === 0) throw new Error('Missing paths input!');
@@ -12,7 +13,7 @@ export const run = async (): Promise<void> => {
       reports,
       summary = '',
       hasDifferences,
-    } = await getBundleSizeDiff(paths, onlyDiff);
+    } = await getBundleSizeDiff(paths, onlyDiff, filter);
     setOutput('reports', reports);
     setOutput('summary', summary);
     setOutput('hasDifferences', hasDifferences);

@@ -3,7 +3,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.diffTable = void 0;
 const helpers_1 = require("./helpers");
 const SZ = 'KB';
-const head = `| File | Previous size | New size | Difference | \n|:---|---:|---:|---:| \n`;
+const head = `| Folder/File | Previous size | New size | Difference | \n|:---|---:|---:|---:| \n`;
 const row = ({ name, newSize, oldSize, diff, percentage }) => {
     const newBytes = newSize ? `${(0, helpers_1.convertBytes)(newSize, SZ)}${SZ}` : '';
     const oldBytes = oldSize ? `${(0, helpers_1.convertBytes)(oldSize, SZ)}${SZ}` : '';
