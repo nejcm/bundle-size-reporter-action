@@ -1,14 +1,15 @@
 # Bundle size reporter github action
 
 Action for reporting bundle size difference. Works with bundle size json report
-files or actual files. Check reports and tests folder for examples of files.
+files (_rollup-plugin-size-snapshot_) or actual files. Check _reports_ and
+_tests_ folder in the repository for examples.
 
 > ! Does not work with files with different names accross branches (eg.:
 > bundlers that produce different/hashed file names each build)
 
 ## Inputs
 
-**paths** - [Required] Paths to bundle size json files. Comma separated list.
+**paths** - _[Required]_ Paths to bundle size json files. Comma separated list.
 
 **onlyDiff** - Report only differences. Default `"true"`.
 
@@ -24,40 +25,116 @@ files or actual files. Check reports and tests folder for examples of files.
 
 ## Usage
 
+```yml
+- name: Checkout branch
+  uses: actions/checkout@v3
+  with:
+    ref: 'test' # branch to compare to
+    path: br-base # required
+    token: ${{ secrets.GITHUB_TOKEN }}
+
+- name: Bundle size report
+  id: bundleSize
+  uses: nejcm/bundle-size-reporter-action@v1.2.1
+  with:
+    paths: 'reports/**/*.json'
+    onlyDiff: 'true'
+    filter: '.*\\.esm\\.js'
 ```
-  - name: Checkout branch
-    uses: actions/checkout@v3
-    with:
-      ref: 'test' # branch to compare to
-      path: br-base # required
-      token: ${{ secrets.GITHUB_TOKEN }}
 
-  - name: Bundle size report
-    id: bundleSize
-    uses: nejcm/bundle-size-reporter-action@v1.2.1
-    with:
-      paths: 'reports/**/*.json'
-      onlyDiff: 'true'
-      filter: '.*\\.esm\\.js'
+### Github composite action
+
+This useful
+[composite action](https://docs.github.com/en/actions/creating-actions/creating-a-composite-action)
+will calculate bundle size difference, post a
+[github action summary](https://docs.github.com/en/actions/using-workflows/workflow-commands-for-github-actions#adding-a-job-summary)
+and a PR comment. First two steps are required but the others can be customized
+based on your needs.
+
+```yml
+name: 'Bundle size reporter'
+description: 'Post bundle size difference compared to another branch'
+inputs:
+  branch:
+    description: 'Branch to compare to'
+    required: true
+    default: 'main'
+  paths:
+    description:
+      'Paths to json file bundle size report or folder containing bundles'
+    required: true
+    default: '/'
+  onlyDiff:
+    description: 'Report only different sizes'
+    required: false
+    default: 'false'
+
+  # Comment inputs
+  comment:
+    description: 'Post comment'
+    required: false
+    default: 'true'
+  header:
+    description: 'Comment header'
+    required: false
+    default: 'Bundle size report'
+  append:
+    description: 'Append comment'
+    required: false
+    default: 'false'
+  ghToken:
+    description: 'Github token'
+    required: false
+
+runs:
+  using: 'composite'
+  steps:
+    # Checkout branch to compare to [required]
+    - name: Checkout base branch
+      uses: actions/checkout@v3
+      with:
+        ref: ${{ inputs.branch }}
+        path: br-base
+        token: ${{ inputs.ghToken }}
+
+    # Generate the bundle size difference report [required]
+    - name: Generate report
+      id: bundleSize
+      uses: nejcm/bundle-size-reporter-action@v1.4.0
+      with:
+        paths: ${{ inputs.paths }}
+        onlyDiff: ${{ inputs.onlyDiff }}
+
+    # Post github action summary
+    - name: Post summary
+      if: ${{ steps.bundleSize.outputs.hasDifferences == 'true' }}
+      run: |
+        echo '${{ steps.bundleSize.outputs.summary }}' >> $GITHUB_STEP_SUMMARY
+      shell: bash
+
+    # Post github action comment
+    - name: Post comment
+      uses: marocchino/sticky-pull-request-comment@v2
+      if: ${{ steps.bundleSize.outputs.hasDifferences == 'true' }}
+      with:
+        number: ${{ github.event.pull_request.number }}
+        header: ${{ inputs.header }}
+        append: ${{ inputs.append }}
+        message: '${{ steps.bundleSize.outputs.summary }}'
+        GITHUB_TOKEN: ${{ inputs.ghToken }}
 ```
 
-### Post a comment and action summary
+Using composite action
 
-```
-  # post action summary
-  - name: Bundle size summary
-    if: steps.bundleSize.outputs.hasDifferences == 'true'
-    run: |
-      echo "${{ steps.bundleSize.outputs.summary }}" >> $GITHUB_STEP_SUMMARY
-
-  # post PR comment
-  - uses: marocchino/sticky-pull-request-comment@v2
-    if: steps.bundleSize.outputs.hasDifferences == 'true'
-    with:
-      number: ${{ github.event.pull_request.number }}
-      header: 'Bundle size'
-      message: ${{ steps.bundleSize.outputs.summary }}
-      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+```yml
+- name: 📄 Bundle size report
+  uses: ./.github/actions/bundle-size # path to composite action
+  with:
+    paths: 'reports/**/*.json'
+    onlyDiff: 'true'
+    branch: 'develop' # branch to compare to
+    header: 'Bundle size report' # PR comment header
+    ghToken: ${{ secrets.GITHUB_TOKEN }} # github token
 ```
 
 ## Example
