@@ -107,7 +107,7 @@ runs:
 
     # Post github action summary
     - name: Post summary
-      if: ${{ steps.bundleSize.outputs.hasDifferences == 'true' }}
+      if: ${{ steps.bundleSize.outputs.hasDifferences == 'true' }} # post only in case of changes
       run: |
         echo '${{ steps.bundleSize.outputs.summary }}' >> $GITHUB_STEP_SUMMARY
       shell: bash
@@ -115,7 +115,7 @@ runs:
     # Post github action comment
     - name: Post comment
       uses: marocchino/sticky-pull-request-comment@v2
-      if: ${{ steps.bundleSize.outputs.hasDifferences == 'true' }}
+      if: ${{ steps.bundleSize.outputs.hasDifferences == 'true' }} # post only in case of changes
       with:
         number: ${{ github.event.pull_request.number }}
         header: ${{ inputs.header }}
