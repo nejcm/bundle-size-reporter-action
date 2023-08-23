@@ -47,7 +47,7 @@ export const sizes = [
   'ZB',
   'YB',
 ] as const;
-export type Sizes = typeof sizes[number];
+export type Size = typeof sizes[number];
 export const multiplier = 1024;
 
 export const formatBytes = (bytes: number, decimals = 2): string => {
@@ -59,8 +59,8 @@ export const formatBytes = (bytes: number, decimals = 2): string => {
 
 export const convertBytes = (
   bytes: number,
-  from: Sizes = 'B',
-  to: Sizes = 'MB',
+  from: Size = 'B',
+  to: Size = 'MB',
   decimals = 2,
 ): number => {
   if (!bytes || from === to) return bytes;
@@ -71,6 +71,9 @@ export const convertBytes = (
   const i = toI - fromI;
   return parseFloat((bytes / multiplier ** i).toFixed(dm));
 };
+
+export const convertBFormatted = (bytes: number, sz: Size) =>
+  `${convertBytes(bytes, undefined, sz)}${sz}`;
 
 export const array2Map = (arr: (string | number)[]): Record<string, boolean> =>
   arr.reduce<Record<string, boolean>>((acc, curr) => {

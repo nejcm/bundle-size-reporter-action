@@ -107,16 +107,21 @@ const getFilesMap = (path, options) => {
     return map;
 };
 exports.getFilesMap = getFilesMap;
-const getBundleSizeDiff = (paths, onlyDiff = false, filter, options = {}) => __awaiter(void 0, void 0, void 0, function* () {
-    const splited = paths.trim().split(',');
+const getBundleSizeDiff = (paths, onlyDiff = false, filter, unit = 'KB', options = {}) => __awaiter(void 0, void 0, void 0, function* () {
+    const splited = paths.split(',');
     const filterRegex = filter && filter.length > 0 ? new RegExp(filter, 'gi') : undefined;
-    const result = yield splited.reduce((groupAcc, groupPath) => __awaiter(void 0, void 0, void 0, function* () {
+    const result = yield splited.reduce((groupAcc, gp) => __awaiter(void 0, void 0, void 0, function* () {
+        // parse path
+        const gpTrimmed = gp.trim();
+        const shouldMerge = gpTrimmed.startsWith('~');
+        const groupPath = shouldMerge ? gpTrimmed.slice(1) : gpTrimmed;
+        // get files from path
         const fileMap = (0, exports.getFilesMap)(groupPath, options);
         let summary = '';
-        const sums = {
-            diff: 0,
-        };
+        const sums = { oldSize: 0, newSize: 0, diff: 0 };
+        let hasDiffs = false;
         const fileKeys = Object.keys(fileMap);
+        // generate reports for each file
         const groupReports = yield fileKeys.reduce((acc, key) => __awaiter(void 0, void 0, void 0, function* () {
             const filePath = path_1.default.join(basePaths.main, key);
             const args = {
@@ -128,22 +133,28 @@ const getBundleSizeDiff = (paths, onlyDiff = false, filter, options = {}) => __a
             const isJson = (0, helpers_1.isJsonFile)(key);
             const fn = isJson ? exports.bundleSizeJson : exports.bundleSizeFile;
             const report = yield fn(args);
-            const rows = markdown_1.diffTable.rows(report);
             const reportVals = Object.values(report);
-            for (let i = 0; i < reportVals.length; i++) {
-                sums.diff += reportVals[i].diff;
-            }
-            if (rows.length > 2) {
-                summary = `${summary}${isJson ? `| 📁 **${key}** | | | |\n` : ''}${rows}`;
+            if (reportVals.length > 0) {
+                hasDiffs = true;
+                // calc diff
+                for (let i = 0; i < reportVals.length; i++) {
+                    sums.oldSize += reportVals[i].oldSize;
+                    sums.newSize += reportVals[i].newSize;
+                    sums.diff += reportVals[i].diff;
+                }
+                if (!shouldMerge) {
+                    const rows = markdown_1.diffTable.rows(report, unit);
+                    summary = `${summary}${isJson ? markdown_1.diffTable.folderRow(key) : ''}${rows}`;
+                }
             }
             const memo = yield acc;
             memo[key] = report;
             return memo;
         }), Promise.resolve({}));
         const groupMemo = yield groupAcc;
-        if (summary.length > 2) {
+        if (hasDiffs) {
             groupMemo.hasDifferences = true;
-            groupMemo.summary = `${groupMemo.summary}${markdown_1.diffTable.table(summary)}| **TOTAL** | | | **${sums.diff <= 0 ? '' : '+'}${(0, helpers_1.convertBytes)(sums.diff, 'KB')}KB** |\n\n`;
+            groupMemo.summary += markdown_1.diffTable.table(`${summary}${markdown_1.diffTable.footer(shouldMerge ? (0, markdown_1.folderTitle)(groupPath) : '**TOTAL**', sums, !shouldMerge, unit)}\n\n`);
         }
         groupMemo.reports[groupPath] = groupReports;
         return groupMemo;

@@ -1,4 +1,4 @@
-import { array2Map } from '../src/helpers';
+import { array2Map } from '../helpers';
 
 describe('helpers', () => {
   test('array2Map', () => {

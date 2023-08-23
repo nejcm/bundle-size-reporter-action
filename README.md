@@ -16,6 +16,9 @@ files. Comma separated list.
 
 **filter** - Regex filter based on file path.
 
+**unit** - Size unit. Default `"KB"`. Options
+`"B","KB","MB","GB","TB","PB","EB","ZB","YB"`
+
 ## Outputs
 
 **summary** - `string` Table of bundle size differences in markdown format.
@@ -35,12 +38,28 @@ files. Comma separated list.
     token: ${{ secrets.GITHUB_TOKEN }}
 
 - name: Bundle size report
-  id: bundleSize
   uses: nejcm/bundle-size-reporter-action@v1.2.1
   with:
-    paths: 'reports/**/*.json,assets/'
+    paths: 'reports/**/*.json,assets/*'
     onlyDiff: 'true'
     filter: '.*\\.esm\\.js'
+```
+
+> Putting `~` in front of the path will combine all files under that folder and
+> just calculate the total sum.
+
+```yml
+- name: Checkout branch
+  uses: actions/checkout@v3
+  with:
+    ref: 'master' # branch to compare to
+    path: br-base # required
+    token: ${{ secrets.GITHUB_TOKEN }}
+
+- name: Bundle size report
+  uses: nejcm/bundle-size-reporter-action@v1.2.1
+  with:
+    paths: '~static/*'
 ```
 
 ### Github composite action
@@ -69,6 +88,13 @@ inputs:
     description: 'Report only different sizes'
     required: false
     default: 'false'
+  filter:
+    description: 'Regex filter based on file path'
+    required: false
+  unit:
+    description: 'Size unit'
+    required: false
+    default: 'KB'
 
   # Comment inputs
   comment:
@@ -101,10 +127,12 @@ runs:
     # Generate the bundle size difference report [required]
     - name: Generate report
       id: bundleSize
-      uses: nejcm/bundle-size-reporter-action@v1.4.0
+      uses: nejcm/bundle-size-reporter-action@v1
       with:
         paths: ${{ inputs.paths }}
         onlyDiff: ${{ inputs.onlyDiff }}
+        filter: ${{ inputs.filter }}
+        unit: ${{ inputs.unit }}
 
     # Post github action summary
     - name: Post summary

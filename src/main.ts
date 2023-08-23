@@ -2,16 +2,16 @@ import fs from 'fs/promises';
 import glob from 'glob';
 import Path from 'path';
 import {
+  Size,
   array2Map,
-  convertBytes,
   isJsonFile,
   parseJSON,
   percentageDiff,
   readFile,
   trimPath,
 } from './helpers';
-import { diffTable } from './markdown';
-import { Args, BundleInfo, GroupReport, Report, Response } from './types';
+import { diffTable, folderTitle } from './markdown';
+import { Args, BundleInfo, GroupReport, Report, Response, Sums } from './types';
 
 const branchBasePath = 'br-base';
 const workspace = process.env.GITHUB_WORKSPACE || '';
@@ -129,21 +129,29 @@ export const getBundleSizeDiff = async (
   paths: string,
   onlyDiff = false,
   filter?: string,
+  unit: Size = 'KB',
   options: glob.IOptions = {},
 ): Promise<Response> => {
-  const splited = paths.trim().split(',');
+  const splited = paths.split(',');
   const filterRegex =
     filter && filter.length > 0 ? new RegExp(filter, 'gi') : undefined;
 
   const result = await splited.reduce<Promise<Response>>(
-    async (groupAcc, groupPath) => {
-      const fileMap = getFilesMap(groupPath, options);
-      let summary = '';
-      const sums = {
-        diff: 0,
-      };
+    async (groupAcc, gp) => {
+      // parse path
+      const gpTrimmed = gp.trim();
+      const shouldMerge = gpTrimmed.startsWith('~');
+      const groupPath = shouldMerge ? gpTrimmed.slice(1) : gpTrimmed;
 
+      // get files from path
+      const fileMap = getFilesMap(groupPath, options);
+
+      let summary = '';
+      const sums: Sums = { oldSize: 0, newSize: 0, diff: 0 };
+      let hasDiffs = false;
       const fileKeys = Object.keys(fileMap);
+
+      // generate reports for each file
       const groupReports = await fileKeys.reduce<
         Promise<Record<string, GroupReport>>
       >(async (acc, key) => {
@@ -158,15 +166,22 @@ export const getBundleSizeDiff = async (
         const fn = isJson ? bundleSizeJson : bundleSizeFile;
         const report = await fn(args);
 
-        const rows = diffTable.rows(report);
         const reportVals = Object.values(report);
-        for (let i = 0; i < reportVals.length; i++) {
-          sums.diff += reportVals[i].diff;
-        }
-        if (rows.length > 2) {
-          summary = `${summary}${
-            isJson ? `| 📁 **${key}** | | | |\n` : ''
-          }${rows}`;
+        if (reportVals.length > 0) {
+          hasDiffs = true;
+          // calc diff
+          for (let i = 0; i < reportVals.length; i++) {
+            sums.oldSize += reportVals[i].oldSize;
+            sums.newSize += reportVals[i].newSize;
+            sums.diff += reportVals[i].diff;
+          }
+
+          if (!shouldMerge) {
+            const rows = diffTable.rows(report, unit);
+            summary = `${summary}${
+              isJson ? diffTable.folderRow(key) : ''
+            }${rows}`;
+          }
         }
         const memo = await acc;
         memo[key] = report;
@@ -174,14 +189,16 @@ export const getBundleSizeDiff = async (
       }, Promise.resolve({}));
 
       const groupMemo: Response = await groupAcc;
-      if (summary.length > 2) {
+      if (hasDiffs) {
         groupMemo.hasDifferences = true;
-        groupMemo.summary = `${groupMemo.summary}${diffTable.table(
-          summary,
-        )}| **TOTAL** | | | **${sums.diff <= 0 ? '' : '+'}${convertBytes(
-          sums.diff,
-          'KB',
-        )}KB** |\n\n`;
+        groupMemo.summary += diffTable.table(
+          `${summary}${diffTable.footer(
+            shouldMerge ? folderTitle(groupPath) : '**TOTAL**',
+            sums,
+            !shouldMerge,
+            unit,
+          )}\n\n`,
+        );
       }
 
       groupMemo.reports[groupPath] = groupReports;

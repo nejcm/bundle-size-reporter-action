@@ -19,7 +19,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.trimPath = exports.array2Map = exports.convertBytes = exports.formatBytes = exports.multiplier = exports.sizes = exports.percentageDiff = exports.parseJSON = exports.readFile = exports.getFilename = exports.isFile = exports.isJsonFile = exports.toBoolean = void 0;
+exports.trimPath = exports.array2Map = exports.convertBFormatted = exports.convertBytes = exports.formatBytes = exports.multiplier = exports.sizes = exports.percentageDiff = exports.parseJSON = exports.readFile = exports.getFilename = exports.isFile = exports.isJsonFile = exports.toBoolean = void 0;
 const promises_1 = __importDefault(__nccwpck_require__(3292));
 const toBoolean = (value) => value === 'true' || value === '1' || value === 'TRUE' || value === 1;
 exports.toBoolean = toBoolean;
@@ -89,6 +89,8 @@ const convertBytes = (bytes, from = 'B', to = 'MB', decimals = 2) => {
     return parseFloat((bytes / Math.pow(exports.multiplier, i)).toFixed(dm));
 };
 exports.convertBytes = convertBytes;
+const convertBFormatted = (bytes, sz) => `${(0, exports.convertBytes)(bytes, undefined, sz)}${sz}`;
+exports.convertBFormatted = convertBFormatted;
 const array2Map = (arr) => arr.reduce((acc, curr) => {
     acc[curr] = true;
     return acc;
@@ -123,11 +125,13 @@ const run = () => __awaiter(void 0, void 0, void 0, function* () {
     (0, core_1.info)(`Starting bundle size diff action.`);
     const paths = (0, core_1.getInput)('paths');
     const filter = (0, core_1.getInput)('filter');
+    const unit = (0, core_1.getInput)('unit') || 'KB';
     const onlyDiff = (0, helpers_1.toBoolean)((0, core_1.getInput)('onlyDiff') || 'false');
+    const validUnit = helpers_1.sizes.includes(unit) ? unit : 'KB';
     try {
         if (!paths || paths.length === 0)
             throw new Error('Missing paths input!');
-        const { reports, summary = '', hasDifferences, } = yield (0, main_1.getBundleSizeDiff)(paths, onlyDiff, filter);
+        const { reports, summary = '', hasDifferences, } = yield (0, main_1.getBundleSizeDiff)(paths, onlyDiff, filter, validUnit);
         (0, core_1.setOutput)('reports', reports);
         (0, core_1.setOutput)('summary', summary);
         (0, core_1.setOutput)('hasDifferences', hasDifferences);
@@ -259,16 +263,21 @@ const getFilesMap = (path, options) => {
     return map;
 };
 exports.getFilesMap = getFilesMap;
-const getBundleSizeDiff = (paths, onlyDiff = false, filter, options = {}) => __awaiter(void 0, void 0, void 0, function* () {
-    const splited = paths.trim().split(',');
+const getBundleSizeDiff = (paths, onlyDiff = false, filter, unit = 'KB', options = {}) => __awaiter(void 0, void 0, void 0, function* () {
+    const splited = paths.split(',');
     const filterRegex = filter && filter.length > 0 ? new RegExp(filter, 'gi') : undefined;
-    const result = yield splited.reduce((groupAcc, groupPath) => __awaiter(void 0, void 0, void 0, function* () {
+    const result = yield splited.reduce((groupAcc, gp) => __awaiter(void 0, void 0, void 0, function* () {
+        // parse path
+        const gpTrimmed = gp.trim();
+        const shouldMerge = gpTrimmed.startsWith('~');
+        const groupPath = shouldMerge ? gpTrimmed.slice(1) : gpTrimmed;
+        // get files from path
         const fileMap = (0, exports.getFilesMap)(groupPath, options);
         let summary = '';
-        const sums = {
-            diff: 0,
-        };
+        const sums = { oldSize: 0, newSize: 0, diff: 0 };
+        let hasDiffs = false;
         const fileKeys = Object.keys(fileMap);
+        // generate reports for each file
         const groupReports = yield fileKeys.reduce((acc, key) => __awaiter(void 0, void 0, void 0, function* () {
             const filePath = path_1.default.join(basePaths.main, key);
             const args = {
@@ -280,22 +289,28 @@ const getBundleSizeDiff = (paths, onlyDiff = false, filter, options = {}) => __a
             const isJson = (0, helpers_1.isJsonFile)(key);
             const fn = isJson ? exports.bundleSizeJson : exports.bundleSizeFile;
             const report = yield fn(args);
-            const rows = markdown_1.diffTable.rows(report);
             const reportVals = Object.values(report);
-            for (let i = 0; i < reportVals.length; i++) {
-                sums.diff += reportVals[i].diff;
-            }
-            if (rows.length > 2) {
-                summary = `${summary}${isJson ? `| 📁 **${key}** | | | |\n` : ''}${rows}`;
+            if (reportVals.length > 0) {
+                hasDiffs = true;
+                // calc diff
+                for (let i = 0; i < reportVals.length; i++) {
+                    sums.oldSize += reportVals[i].oldSize;
+                    sums.newSize += reportVals[i].newSize;
+                    sums.diff += reportVals[i].diff;
+                }
+                if (!shouldMerge) {
+                    const rows = markdown_1.diffTable.rows(report, unit);
+                    summary = `${summary}${isJson ? markdown_1.diffTable.folderRow(key) : ''}${rows}`;
+                }
             }
             const memo = yield acc;
             memo[key] = report;
             return memo;
         }), Promise.resolve({}));
         const groupMemo = yield groupAcc;
-        if (summary.length > 2) {
+        if (hasDiffs) {
             groupMemo.hasDifferences = true;
-            groupMemo.summary = `${groupMemo.summary}${markdown_1.diffTable.table(summary)}| **TOTAL** | | | **${sums.diff <= 0 ? '' : '+'}${(0, helpers_1.convertBytes)(sums.diff, 'KB')}KB** |\n\n`;
+            groupMemo.summary += markdown_1.diffTable.table(`${summary}${markdown_1.diffTable.footer(shouldMerge ? (0, markdown_1.folderTitle)(groupPath) : '**TOTAL**', sums, !shouldMerge, unit)}\n\n`);
         }
         groupMemo.reports[groupPath] = groupReports;
         return groupMemo;
@@ -313,26 +328,32 @@ exports.getBundleSizeDiff = getBundleSizeDiff;
 "use strict";
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.diffTable = void 0;
+exports.diffTable = exports.folderTitle = void 0;
 const helpers_1 = __nccwpck_require__(9202);
-const SZ = 'KB';
 const head = `| Folder/File | Previous size | New size | Difference | \n|:---|---:|---:|---:| \n`;
-const row = ({ name, newSize, oldSize, diff, percentage }) => {
-    const newBytes = newSize ? `${(0, helpers_1.convertBytes)(newSize, SZ)}${SZ}` : '';
-    const oldBytes = oldSize ? `${(0, helpers_1.convertBytes)(oldSize, SZ)}${SZ}` : '';
-    return `| ${name} | ${oldBytes} | ${newBytes} | ${diff <= 0 ? '' : '+'}${(0, helpers_1.convertBytes)(diff, SZ)}${SZ} **(${percentage}%)** |`;
+const getPrefix = (diff) => (diff <= 0 ? '' : '+');
+const row = ({ name, newSize, oldSize, diff, percentage }, unit) => {
+    const newBytes = newSize ? (0, helpers_1.convertBFormatted)(newSize, unit) : '';
+    const oldBytes = oldSize ? (0, helpers_1.convertBFormatted)(oldSize, unit) : '';
+    return `| ${name} | ${oldBytes} | ${newBytes} | ${getPrefix(diff)}${(0, helpers_1.convertBFormatted)(diff, unit)} **(${percentage}%)** |`;
 };
+const folderTitle = (title) => `📁 **\`${title}\`**`;
+exports.folderTitle = folderTitle;
 exports.diffTable = {
     head,
+    folderRow: (title) => `| ${(0, exports.folderTitle)(title)} | | | |\n`,
     row,
-    rows: (group) => {
+    rows: (group, unit) => {
         const rows = Object.keys(group).reduce((acc, key) => {
-            const r = row(group[key]);
+            const r = row(group[key], unit);
             return `${acc}${r}\n`;
         }, '');
         return rows;
     },
-    table: (rows) => `${head}${rows}`,
+    footer: (title = '', sums, onlyDiff, unit) => {
+        return `| ${title} | ${onlyDiff ? '' : (0, helpers_1.convertBFormatted)(sums.oldSize, unit)} | ${onlyDiff ? '' : (0, helpers_1.convertBFormatted)(sums.newSize, unit)} | **${getPrefix(sums.diff)}${(0, helpers_1.convertBFormatted)(sums.diff, unit)}** |`;
+    },
+    table: (body) => `${head}${body}`,
 };
 
 

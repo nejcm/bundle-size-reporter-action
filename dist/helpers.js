@@ -12,7 +12,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.trimPath = exports.array2Map = exports.convertBytes = exports.formatBytes = exports.multiplier = exports.sizes = exports.percentageDiff = exports.parseJSON = exports.readFile = exports.getFilename = exports.isFile = exports.isJsonFile = exports.toBoolean = void 0;
+exports.trimPath = exports.array2Map = exports.convertBFormatted = exports.convertBytes = exports.formatBytes = exports.multiplier = exports.sizes = exports.percentageDiff = exports.parseJSON = exports.readFile = exports.getFilename = exports.isFile = exports.isJsonFile = exports.toBoolean = void 0;
 const promises_1 = __importDefault(require("fs/promises"));
 const toBoolean = (value) => value === 'true' || value === '1' || value === 'TRUE' || value === 1;
 exports.toBoolean = toBoolean;
@@ -82,6 +82,8 @@ const convertBytes = (bytes, from = 'B', to = 'MB', decimals = 2) => {
     return parseFloat((bytes / Math.pow(exports.multiplier, i)).toFixed(dm));
 };
 exports.convertBytes = convertBytes;
+const convertBFormatted = (bytes, sz) => `${(0, exports.convertBytes)(bytes, undefined, sz)}${sz}`;
+exports.convertBFormatted = convertBFormatted;
 const array2Map = (arr) => arr.reduce((acc, curr) => {
     acc[curr] = true;
     return acc;

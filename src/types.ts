@@ -29,3 +29,9 @@ export type Response = {
   summary: string;
   hasDifferences: boolean;
 };
+
+export type Sums = {
+  oldSize: number;
+  newSize: number;
+  diff: number;
+};
