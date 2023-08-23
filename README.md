@@ -125,7 +125,7 @@ runs:
     # Generate the bundle size difference report [required]
     - name: Generate report
       id: bundleSize
-      uses: nejcm/bundle-size-reporter-action@v1
+      uses: nejcm/bundle-size-reporter-action@v1.4.1
       with:
         paths: ${{ inputs.paths }}
         onlyDiff: ${{ inputs.onlyDiff }}
