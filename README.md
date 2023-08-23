@@ -4,9 +4,6 @@ Action for reporting bundle size difference. Works with bundle size json report
 files (_rollup-plugin-size-snapshot_) or actual files. Check _reports_ and
 _tests_ folder in the repository for examples.
 
-> ! Does not work with files with different names accross branches (eg.:
-> bundlers that produce different/hashed file names each build)
-
 ## Inputs
 
 **paths** - _[Required]_ Paths to bundle size json files or folder containing
@@ -46,7 +43,8 @@ files. Comma separated list.
 ```
 
 > Putting `~` in front of the path will combine all files under that folder and
-> just calculate the total sum.
+> just calculate the total sum. Usefull when generated files inside the folder
+> have hash names that change each time.
 
 ```yml
 - name: Checkout branch
