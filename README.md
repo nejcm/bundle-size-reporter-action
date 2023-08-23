@@ -9,7 +9,8 @@ _tests_ folder in the repository for examples.
 
 ## Inputs
 
-**paths** - _[Required]_ Paths to bundle size json files. Comma separated list.
+**paths** - _[Required]_ Paths to bundle size json files or folder containing
+files. Comma separated list.
 
 **onlyDiff** - Report only differences. Default `"true"`.
 
@@ -37,7 +38,7 @@ _tests_ folder in the repository for examples.
   id: bundleSize
   uses: nejcm/bundle-size-reporter-action@v1.2.1
   with:
-    paths: 'reports/**/*.json'
+    paths: 'reports/**/*.json,assets/'
     onlyDiff: 'true'
     filter: '.*\\.esm\\.js'
 ```
