@@ -12,7 +12,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.array2Map = exports.convertBytes = exports.formatBytes = exports.multiplier = exports.sizes = exports.percentageDiff = exports.parseJSON = exports.readFile = exports.isFile = exports.isJsonFile = exports.toBoolean = void 0;
+exports.trimPath = exports.array2Map = exports.convertBytes = exports.formatBytes = exports.multiplier = exports.sizes = exports.percentageDiff = exports.parseJSON = exports.readFile = exports.getFilename = exports.isFile = exports.isJsonFile = exports.toBoolean = void 0;
 const promises_1 = __importDefault(require("fs/promises"));
 const toBoolean = (value) => value === 'true' || value === '1' || value === 'TRUE' || value === 1;
 exports.toBoolean = toBoolean;
@@ -23,6 +23,8 @@ const isFile = (path) => __awaiter(void 0, void 0, void 0, function* () {
     return stats.isFile();
 });
 exports.isFile = isFile;
+const getFilename = (path) => path.replace(/^.*[\\/]/, '');
+exports.getFilename = getFilename;
 const readFile = (path) => __awaiter(void 0, void 0, void 0, function* () {
     try {
         return yield promises_1.default.readFile(path, 'utf8');
@@ -85,3 +87,5 @@ const array2Map = (arr) => arr.reduce((acc, curr) => {
     return acc;
 }, {});
 exports.array2Map = array2Map;
+const trimPath = (path, trim) => path.startsWith(trim) ? path.slice(trim.length) : path;
+exports.trimPath = trimPath;

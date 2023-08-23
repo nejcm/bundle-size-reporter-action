@@ -1,35 +1,25 @@
-import { convertBytes, percentageDiff } from './helpers';
-import { Report } from './types';
+import { convertBytes } from './helpers';
+import { GroupReport, Report } from './types';
 
 const SZ = 'KB';
 
-const head = `| File | Previous size | New size | Difference | \n |:---|---:|---:|---:| \n`;
-const diffCol = (updated = 0, old = 0): string => {
-  if (updated === 0 && old === 0) return '';
-  const diff = updated - old;
-  const sign = diff <= 0 ? '' : '+';
-  return `${sign}${convertBytes(diff, SZ)}${SZ} **(${sign}${percentageDiff(
-    updated,
-    old,
-  ).toFixed(2)}%)**`;
+const head = `| Folder/File | Previous size | New size | Difference | \n|:---|---:|---:|---:| \n`;
+
+const row = ({ name, newSize, oldSize, diff, percentage }: Report): string => {
+  const newBytes = newSize ? `${convertBytes(newSize, SZ)}${SZ}` : '';
+  const oldBytes = oldSize ? `${convertBytes(oldSize, SZ)}${SZ}` : '';
+  return `| ${name} | ${oldBytes} | ${newBytes} | ${
+    diff <= 0 ? '' : '+'
+  }${convertBytes(diff, SZ)}${SZ} **(${percentage}%)** |`;
 };
 
 export const diffTable = {
   head,
-  rows: (updated?: Report, old?: Report): string => {
-    const keys = Object.keys({ ...old, ...updated });
-    const rows = keys.reduce((acc, key) => {
-      const { bundled: bOld /* , minified: m2, gzipped: g2 */ } =
-        old?.[key] || {};
-      const { bundled: bUpdated /* , minified: m1, gzipped: g1 */ } =
-        updated?.[key] || {};
-      const oldBytes = bOld ? `${convertBytes(bOld, SZ)}${SZ}` : '';
-      const updatedBytes = bUpdated ? `${convertBytes(bUpdated, SZ)}${SZ}` : '';
-      const r = `| - ${key} | ${oldBytes} | ${updatedBytes} | ${diffCol(
-        bUpdated,
-        bOld,
-      )} |`;
-      return `${acc} ${r}\n`;
+  row,
+  rows: (group: GroupReport): string => {
+    const rows = Object.keys(group).reduce((acc, key) => {
+      const r = row(group[key]);
+      return `${acc}${r}\n`;
     }, '');
     return rows;
   },

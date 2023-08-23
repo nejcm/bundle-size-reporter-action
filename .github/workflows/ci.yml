@@ -51,10 +51,29 @@ jobs:
       - name: 🔨 Build
         run: yarn ncc
 
+      - name: Checkout branch
+        uses: actions/checkout@v3
+        with:
+          ref: 'test'
+          path: br-base
+          token: ${{ secrets.GITHUB_TOKEN }}
+
       - name: 📄 Bundle size
+        id: bundleSize
         uses: ./
         with:
-          branch: 'test'
-          paths: 'reports/**/*.json'
+          paths: 'reports/**/*.json,reports/**/*.js'
           onlyDiff: 'false'
-          ghToken: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Bundle size summary
+        if: steps.bundleSize.outputs.hasDifferences == 'true'
+        run: |
+          echo "${{ steps.bundleSize.outputs.summary }}" >> $GITHUB_STEP_SUMMARY
+      
+      - uses: marocchino/sticky-pull-request-comment@v2
+        if: steps.bundleSize.outputs.hasDifferences == 'true'
+        with:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          number: ${{ github.event.pull_request.number }}
+          header: 'Bundle size'
+          message: ${{ steps.bundleSize.outputs.summary }}

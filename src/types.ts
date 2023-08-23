@@ -2,9 +2,10 @@ export type Args = {
   branchPath: string;
   path: string;
   onlyDiff: boolean;
+  filter?: RegExp;
 };
 
-export type Report = Record<
+export type BundleInfo = Record<
   string,
   {
     bundled?: number;
@@ -13,13 +14,18 @@ export type Report = Record<
   }
 >;
 
-export type SingleResponse = {
-  oldReport?: Report;
-  newReport?: Report;
-  summary?: string;
+export type Report = {
+  name: string;
+  oldSize: number;
+  newSize: number;
+  diff: number;
+  percentage: string;
 };
 
+export type GroupReport = Record<string, Report>;
+
 export type Response = {
-  reports: Record<string, SingleResponse>;
-  summary?: string;
+  reports: Record<string, Record<string, GroupReport>>;
+  summary: string;
+  hasDifferences: boolean;
 };

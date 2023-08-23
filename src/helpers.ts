@@ -11,6 +11,9 @@ export const isFile = async (path: string): Promise<boolean> => {
   return stats.isFile();
 };
 
+export const getFilename = (path: string): string =>
+  path.replace(/^.*[\\/]/, '');
+
 export const readFile = async (path: string): Promise<string | undefined> => {
   try {
     return await fs.readFile(path, 'utf8');
@@ -74,3 +77,6 @@ export const array2Map = (arr: (string | number)[]): Record<string, boolean> =>
     acc[curr] = true;
     return acc;
   }, {});
+
+export const trimPath = (path: string, trim: string): string =>
+  path.startsWith(trim) ? path.slice(trim.length) : path;

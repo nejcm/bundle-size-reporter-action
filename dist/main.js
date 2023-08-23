@@ -12,11 +12,9 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.run = exports.getBundleSizeDiff = exports.getFilesMap = exports.bundleSizeJson = exports.bundleSizeFolder = exports.buildReport = exports.trimPath = void 0;
-const core_1 = require("@actions/core");
+exports.getBundleSizeDiff = exports.getFilesMap = exports.bundleSizeJson = exports.bundleSizeFile = exports.getFileSize = exports.buildGroupReport = exports.buildReport = void 0;
 const promises_1 = __importDefault(require("fs/promises"));
 const glob_1 = __importDefault(require("glob"));
-const fp_1 = require("lodash/fp");
 const path_1 = __importDefault(require("path"));
 const helpers_1 = require("./helpers");
 const markdown_1 = require("./markdown");
@@ -26,53 +24,76 @@ const basePaths = {
     main: path_1.default.join(workspace),
     branch: path_1.default.join(workspace, branchBasePath),
 };
-const trimPath = (path, trim) => path.startsWith(trim) ? path.slice(trim.length) : path;
-exports.trimPath = trimPath;
-const buildReport = (files) => __awaiter(void 0, void 0, void 0, function* () {
-    const report = {};
-    for (let i = 0; i < files.length; i++) {
-        const file = files[i];
-        const stat = yield promises_1.default.stat(file);
-        report[file] = {
-            bundled: stat ? stat.size : undefined,
-        };
-    }
-    return report;
-});
+const buildReport = (name, newSize = 0, oldSize = 0) => {
+    if (newSize === 0 && oldSize === 0)
+        return undefined;
+    const diff = newSize - oldSize;
+    return {
+        name,
+        newSize,
+        oldSize,
+        diff,
+        percentage: `${diff <= 0 ? '' : '+'}${(0, helpers_1.percentageDiff)(newSize, oldSize).toFixed(2)}`,
+    };
+};
 exports.buildReport = buildReport;
-// TODO: WIP
-const bundleSizeFolder = ({ path, branchPath, onlyDiff, }) => __awaiter(void 0, void 0, void 0, function* () {
-    const files = yield promises_1.default.readdir(path);
-    const newReport = yield (0, exports.buildReport)(files);
-    const oldFiles = yield promises_1.default.readdir(branchPath);
-    const oldReport = yield (0, exports.buildReport)(oldFiles);
-    const summary = !onlyDiff || !(0, fp_1.isEqual)(newReport, oldReport)
-        ? markdown_1.diffTable.rows(newReport, oldReport)
-        : '';
-    return {
-        oldReport,
-        newReport,
-        summary,
-    };
+const buildGroupReport = (newInfo, oldInfo, onlyDiff, filter) => {
+    const keys = Object.keys(Object.assign(Object.assign({}, newInfo), oldInfo));
+    return keys.reduce((acc, key) => {
+        if (filter && !key.match(filter))
+            return acc;
+        const { bundled: oldSize = 0 } = (oldInfo || {})[key] || {};
+        const { bundled: newSize = 0 } = (newInfo || {})[key] || {};
+        if (onlyDiff && oldSize === newSize)
+            return acc;
+        const report = (0, exports.buildReport)(key, newSize, oldSize);
+        if (!report)
+            return acc;
+        acc[key] = report;
+        return acc;
+    }, {});
+};
+exports.buildGroupReport = buildGroupReport;
+const getFileSize = (file) => __awaiter(void 0, void 0, void 0, function* () {
+    try {
+        const stat = yield promises_1.default.stat(file);
+        return stat.size;
+    }
+    catch (error) {
+        return undefined;
+    }
 });
-exports.bundleSizeFolder = bundleSizeFolder;
-const bundleSizeJson = ({ path, branchPath, onlyDiff, }) => __awaiter(void 0, void 0, void 0, function* () {
+exports.getFileSize = getFileSize;
+const bundleSizeFile = ({ path, branchPath, onlyDiff, filter, }) => __awaiter(void 0, void 0, void 0, function* () {
+    const newSize = yield (0, exports.getFileSize)(path);
+    const name = (0, helpers_1.trimPath)(path, basePaths.main);
+    const newBundleInfo = newSize
+        ? {
+            [name]: {
+                bundled: newSize,
+            },
+        }
+        : undefined;
+    const oldSize = yield (0, exports.getFileSize)(branchPath);
+    const oldBundleInfo = newSize
+        ? {
+            [name]: {
+                bundled: oldSize,
+            },
+        }
+        : undefined;
+    return (0, exports.buildGroupReport)(newBundleInfo, oldBundleInfo, onlyDiff, filter);
+});
+exports.bundleSizeFile = bundleSizeFile;
+const bundleSizeJson = ({ path, branchPath, onlyDiff, filter, }) => __awaiter(void 0, void 0, void 0, function* () {
     const newContent = yield (0, helpers_1.readFile)(path);
-    const newReport = newContent ? (0, helpers_1.parseJSON)(newContent) : undefined;
+    const newInfo = newContent ? (0, helpers_1.parseJSON)(newContent) : undefined;
     const oldContent = yield (0, helpers_1.readFile)(branchPath);
-    const oldReport = oldContent ? (0, helpers_1.parseJSON)(oldContent) : undefined;
-    const hasReport = !!newReport || !!oldReport;
-    const summary = hasReport && (!onlyDiff || !(0, fp_1.isEqual)(newReport, oldReport))
-        ? markdown_1.diffTable.rows(newReport, oldReport)
-        : '';
-    return {
-        oldReport,
-        newReport,
-        summary,
-    };
+    const oldInfo = oldContent ? (0, helpers_1.parseJSON)(oldContent) : undefined;
+    return (0, exports.buildGroupReport)(newInfo, oldInfo, onlyDiff, filter);
 });
 exports.bundleSizeJson = bundleSizeJson;
-const getFilesMap = (paths, options) => paths.reduce((acc, path) => {
+const getFilesMap = (path, options) => {
     const opts = Object.assign({ dot: true }, options);
     const p = path.trim();
     const fullPath = path_1.default.join(basePaths.main, p).replace(/\\/g, '/');
@@ -80,52 +101,53 @@ const getFilesMap = (paths, options) => paths.reduce((acc, path) => {
     const newFiles = glob_1.default.sync(fullPath, opts);
     const oldFiles = glob_1.default.sync(branchPath, opts);
     const map = (0, helpers_1.array2Map)([
-        ...newFiles.map((val) => (0, exports.trimPath)(val, basePaths.main)),
-        ...oldFiles.map((val) => (0, exports.trimPath)(val, basePaths.main)),
+        ...newFiles.map((val) => (0, helpers_1.trimPath)(val, basePaths.main)),
+        ...oldFiles.map((val) => (0, helpers_1.trimPath)(val, basePaths.branch)),
     ]);
-    return Object.assign(Object.assign({}, acc), map);
-}, {});
+    return map;
+};
 exports.getFilesMap = getFilesMap;
-const getBundleSizeDiff = (paths, onlyDiff = false, options = {}) => __awaiter(void 0, void 0, void 0, function* () {
+const getBundleSizeDiff = (paths, onlyDiff = false, filter, options = {}) => __awaiter(void 0, void 0, void 0, function* () {
     const splited = paths.trim().split(',');
-    const fileMap = (0, exports.getFilesMap)(splited, options);
-    (0, core_1.info)(`Files: ${JSON.stringify(fileMap)}`);
-    // TODO: run in paralel
-    const result = yield Object.keys(fileMap).reduce((acc, path) => __awaiter(void 0, void 0, void 0, function* () {
-        const fullPath = path_1.default.join(basePaths.main, path);
-        const args = {
-            path: fullPath,
-            branchPath: path_1.default.join(basePaths.branch, path),
-            onlyDiff,
+    const filterRegex = filter && filter.length > 0 ? new RegExp(filter, 'gi') : undefined;
+    const result = yield splited.reduce((groupAcc, groupPath) => __awaiter(void 0, void 0, void 0, function* () {
+        const fileMap = (0, exports.getFilesMap)(groupPath, options);
+        let summary = '';
+        const sums = {
+            diff: 0,
         };
-        const fn = (0, helpers_1.isJsonFile)(path) ? exports.bundleSizeJson : exports.bundleSizeFolder;
-        const report = yield fn(args);
-        const memo = yield acc;
-        memo.reports[fullPath] = report;
-        memo.summary = report.summary
-            ? `${memo.summary} | **${path}** | | | |\n ${report.summary}`
-            : memo.summary;
-        return memo;
-    }), Promise.resolve({ reports: {}, summary: '' }));
-    if (result.summary && result.summary.length > 0) {
-        result.summary = markdown_1.diffTable.table(result.summary);
-    }
+        const fileKeys = Object.keys(fileMap);
+        const groupReports = yield fileKeys.reduce((acc, key) => __awaiter(void 0, void 0, void 0, function* () {
+            const filePath = path_1.default.join(basePaths.main, key);
+            const args = {
+                path: filePath,
+                branchPath: path_1.default.join(basePaths.branch, key),
+                onlyDiff,
+                filter: filterRegex,
+            };
+            const isJson = (0, helpers_1.isJsonFile)(key);
+            const fn = isJson ? exports.bundleSizeJson : exports.bundleSizeFile;
+            const report = yield fn(args);
+            const rows = markdown_1.diffTable.rows(report);
+            const reportVals = Object.values(report);
+            for (let i = 0; i < reportVals.length; i++) {
+                sums.diff += reportVals[i].diff;
+            }
+            if (rows.length > 2) {
+                summary = `${summary}${isJson ? `| 📁 **${key}** | | | |\n` : ''}${rows}`;
+            }
+            const memo = yield acc;
+            memo[key] = report;
+            return memo;
+        }), Promise.resolve({}));
+        const groupMemo = yield groupAcc;
+        if (summary.length > 2) {
+            groupMemo.hasDifferences = true;
+            groupMemo.summary = `${groupMemo.summary}${markdown_1.diffTable.table(summary)}| **TOTAL** | | | **${sums.diff <= 0 ? '' : '+'}${(0, helpers_1.convertBytes)(sums.diff, 'KB')}KB** |\n\n`;
+        }
+        groupMemo.reports[groupPath] = groupReports;
+        return groupMemo;
+    }), Promise.resolve({ reports: {}, summary: '', hasDifferences: false }));
     return result;
 });
 exports.getBundleSizeDiff = getBundleSizeDiff;
-const run = () => __awaiter(void 0, void 0, void 0, function* () {
-    (0, core_1.info)(`Starting bundle size diff action.`);
-    try {
-        const paths = process.env.PATHS || '/';
-        const onlyDiff = (0, helpers_1.toBoolean)(process.env.ONLY_DIFF);
-        const { reports, summary = '' } = yield (0, exports.getBundleSizeDiff)(paths, onlyDiff);
-        (0, core_1.setOutput)('reports', reports);
-        (0, core_1.setOutput)('summary', summary);
-        (0, core_1.info)(`Bundle size action completed.`);
-    }
-    catch (error) {
-        (0, core_1.setFailed)(error.message);
-        (0, core_1.setOutput)('summary', '');
-    }
-});
-exports.run = run;
