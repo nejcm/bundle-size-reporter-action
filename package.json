@@ -14,12 +14,12 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/bundle-size-reporter-action.git"
+    "url": "git+https://github.com/nejcm/bundle-size-reporter-action.git"
   },
   "bugs": {
-    "url": "https://github.com/bundle-size-reporter-action/issues"
+    "url": "https://github.com/nejcm/bundle-size-reporter-action/issues"
   },
-  "homepage": "https://github.com/bundle-size-reporter-action#readme",
+  "homepage": "https://github.com/nejcm/bundle-size-reporter-action#readme",
   "scripts": {
     "lint": "eslint src/**/*.{js,jsx,ts,tsx}",
     "lint:ts": "tsc --noEmit",
